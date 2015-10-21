@@ -1,7 +1,8 @@
 package prometheustosignalfx
+
 import (
-	"os"
 	"fmt"
+	"os"
 )
 
 type prometheusScraper struct {
@@ -15,7 +16,6 @@ func main() {
 		os.Exit(1)
 	}
 }
-
 
 func (p *prometheusScraper) main() error {
 	// TODO: Load from a JSON file endpoints to scrap and how frequently to scrap them
