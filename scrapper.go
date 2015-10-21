@@ -1,4 +1,4 @@
-package prometheustosignalfx
+package main
 
 import (
 	"bytes"
@@ -59,6 +59,7 @@ func (s *Scrapper) Fetch(ctx context.Context, endpoint *url.URL) ([]*datapoint.D
 	if err != nil {
 		return nil, err
 	}
+	// TODO: Chek for http 200 response code
 	// contentType := resp.Header.Get("Content-Type")
 	bodyBytes := &bytes.Buffer{}
 	_, err = io.Copy(bodyBytes, resp.Body)

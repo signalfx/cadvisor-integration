@@ -1,4 +1,4 @@
-package prometheustosignalfx
+package main
 
 import (
 	"fmt"
