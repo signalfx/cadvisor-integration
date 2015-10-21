@@ -1,4 +1,4 @@
-package prometheus_scrapper
+package prometheustosignalfx
 
 import (
 	"bytes"
@@ -19,6 +19,8 @@ import (
 type logger interface {
 	Printf(msg string, args ...interface{})
 }
+
+var _ logger = &log.Logger{}
 
 // Scrapper can fetch prometheus metrics and convert them into datapoints
 type Scrapper struct {
@@ -64,14 +66,14 @@ func (s *Scrapper) Fetch(ctx context.Context, endpoint *url.URL) ([]*datapoint.D
 		return nil, err
 	}
 	defer func() {
-		resp.Body.Close()
+		logIfErr(s.l, resp.Body.Close(), "could not close response body")
 	}()
 	mf, err := parseAsProto(bodyBytes.Bytes())
 	logIfErr(s.l, err, "Unable to parse protocol buffers")
 	return prometheusToSignalFx(mf), nil
 }
 
-func logIfErr(l *log.Logger, err error, msg string, args ...interface{}) {
+func logIfErr(l logger, err error, msg string, args ...interface{}) {
 	if err != nil {
 		l.Printf(msg, args...)
 	}

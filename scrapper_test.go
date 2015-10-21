@@ -1,10 +1,13 @@
-package prometheus_scrapper
+package prometheustosignalfx
 
 import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
+
+	"io/ioutil"
+	"log"
 
 	"github.com/prometheus/client_golang/prometheus"
 	. "github.com/smartystreets/goconvey/convey"
@@ -16,6 +19,7 @@ func TestScrapper(t *testing.T) {
 		server := httptest.NewServer(prometheus.Handler())
 		scrapper := Scrapper{
 			client: http.DefaultClient,
+			l:      log.New(ioutil.Discard, "", 0),
 		}
 		ctx := context.Background()
 		serverURL, err := url.Parse(server.URL)
