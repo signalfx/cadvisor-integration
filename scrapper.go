@@ -69,6 +69,7 @@ func (s *Scrapper) Fetch(ctx context.Context, endpoint *url.URL) ([]*datapoint.D
 		logIfErr(s.l, resp.Body.Close(), "could not close response body")
 	}()
 	mf, err := parseAsProto(bodyBytes.Bytes())
+	// TODO: Also parse text format
 	logIfErr(s.l, err, "Unable to parse protocol buffers")
 	return prometheusToSignalFx(mf), nil
 }
