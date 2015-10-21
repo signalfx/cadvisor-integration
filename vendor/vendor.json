@@ -1,0 +1,96 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"path": "bitbucket.org/ww/goautoneg",
+			"revision": "75cd24fc2f2c",
+			"revisionTime": "2012-07-07T21:04:53+10:00"
+		},
+		{
+			"path": "github.com/beorn7/perks/quantile",
+			"revision": "b965b613227fddccbfffe13eae360ed3fa822f8d",
+			"revisionTime": "2015-02-23T14:51:52+01:00"
+		},
+		{
+			"path": "github.com/gogo/protobuf/proto",
+			"revision": "2093b57e5ca2ccbee4626814100bc1aada691b18",
+			"revisionTime": "2015-09-16T13:01:26+02:00"
+		},
+		{
+			"path": "github.com/golang/protobuf/proto",
+			"revision": "9ebc6c4ed925b1323a0b11cea09e527cdc4e557c",
+			"revisionTime": "2015-10-20T08:33:00+11:00"
+		},
+		{
+			"path": "github.com/jtolds/gls",
+			"revision": "9a4a02dbe491bef4bab3c24fd9f3087d6c4c6690",
+			"revisionTime": "2015-04-01T00:43:43-06:00"
+		},
+		{
+			"path": "github.com/matttproud/golang_protobuf_extensions/pbutil",
+			"revision": "d0c3fe89de86839aecf2e0579c40ba3bb336a453",
+			"revisionTime": "2015-10-11T12:25:29+02:00"
+		},
+		{
+			"path": "github.com/prometheus/client_golang/prometheus",
+			"revision": "e51041b3fa41cece0dca035740ba6411905be473",
+			"revisionTime": "2015-10-08T16:32:47+02:00"
+		},
+		{
+			"path": "github.com/prometheus/client_model/go",
+			"revision": "fa8ad6fec33561be4280a8f0514318c79d7f6cb6",
+			"revisionTime": "2015-02-12T10:17:44Z"
+		},
+		{
+			"path": "github.com/prometheus/common/expfmt",
+			"revision": "ffe929a3f4c4faeaa10f2b9535c2b1be3ad15650",
+			"revisionTime": "2015-10-14T06:50:50+01:00"
+		},
+		{
+			"path": "github.com/prometheus/common/model",
+			"revision": "ffe929a3f4c4faeaa10f2b9535c2b1be3ad15650",
+			"revisionTime": "2015-10-14T06:50:50+01:00"
+		},
+		{
+			"path": "github.com/prometheus/procfs",
+			"revision": "454a56f35412459b5e684fd5ec0f9211b94f002a",
+			"revisionTime": "2015-09-28T13:39:26-04:00"
+		},
+		{
+			"path": "github.com/signalfx/golib/datapoint",
+			"revision": "12c0228b576bbe46e40714004a7474820a2402fc",
+			"revisionTime": "2015-10-19T10:48:08-07:00"
+		},
+		{
+			"path": "github.com/smartystreets/assertions",
+			"revision": "ac6b6f68ca3d6ac00a360d0fad0c844859ad131b",
+			"revisionTime": "2015-08-10T17:06:21-06:00"
+		},
+		{
+			"path": "github.com/smartystreets/assertions/internal/oglematchers",
+			"revision": "ac6b6f68ca3d6ac00a360d0fad0c844859ad131b",
+			"revisionTime": "2015-08-10T17:06:21-06:00"
+		},
+		{
+			"path": "github.com/smartystreets/goconvey/convey",
+			"revision": "6a613dfb77d9fd2df760901a46339b33694d9bd1",
+			"revisionTime": "2015-09-09T14:07:04-06:00"
+		},
+		{
+			"path": "github.com/smartystreets/goconvey/convey/gotest",
+			"revision": "6a613dfb77d9fd2df760901a46339b33694d9bd1",
+			"revisionTime": "2015-09-09T14:07:04-06:00"
+		},
+		{
+			"path": "github.com/smartystreets/goconvey/convey/reporting",
+			"revision": "6a613dfb77d9fd2df760901a46339b33694d9bd1",
+			"revisionTime": "2015-09-09T14:07:04-06:00"
+		},
+		{
+			"path": "golang.org/x/net/context",
+			"revision": "9946ad7d5eae91d8edca4f54d1a1e130a052e823",
+			"revisionTime": "2015-10-20T22:50:55Z"
+		}
+	]
+}
