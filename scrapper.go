@@ -3,28 +3,35 @@ package prometheus_scrapper
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"net/url"
+	"time"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/signalfx/golib/datapoint"
 	"golang.org/x/net/context"
-	"io"
-	"net/http"
-	"net/url"
-	"time"
 )
 
+type logger interface {
+	Printf(msg string, args ...interface{})
+}
+
+// Scrapper can fetch prometheus metrics and convert them into datapoints
 type Scrapper struct {
 	client    *http.Client
 	userAgent string
+	l         logger
 }
-
-var defaultUserAgent = fmt.Sprintf("Prometheus-scrapper/v%s", prometheus.APIVersion)
 
 type cancelableRequest interface {
 	CancelRequest(req *http.Request)
 }
 
+// Fetch prometheus points from an endpoint and convert them to datapoints
 func (s *Scrapper) Fetch(ctx context.Context, endpoint *url.URL) ([]*datapoint.Datapoint, error) {
 	req, err := http.NewRequest("GET", endpoint.String(), nil)
 	if err != nil {
@@ -56,10 +63,18 @@ func (s *Scrapper) Fetch(ctx context.Context, endpoint *url.URL) ([]*datapoint.D
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		resp.Body.Close()
+	}()
 	mf, err := parseAsProto(bodyBytes.Bytes())
-	fmt.Printf("Saw %d metrics\n", len(mf))
+	logIfErr(s.l, err, "Unable to parse protocol buffers")
 	return prometheusToSignalFx(mf), nil
+}
+
+func logIfErr(l *log.Logger, err error, msg string, args ...interface{}) {
+	if err != nil {
+		l.Printf(msg, args...)
+	}
 }
 
 func prometheusToSignalFx(propoints []*dto.MetricFamily) []*datapoint.Datapoint {

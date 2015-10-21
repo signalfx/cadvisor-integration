@@ -1,13 +1,14 @@
 package prometheus_scrapper
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
-	. "github.com/smartystreets/goconvey/convey"
-	"golang.org/x/net/context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
+
+	"github.com/prometheus/client_golang/prometheus"
+	. "github.com/smartystreets/goconvey/convey"
+	"golang.org/x/net/context"
 )
 
 func TestScrapper(t *testing.T) {
