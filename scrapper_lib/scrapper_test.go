@@ -30,7 +30,7 @@ func TestScrapper(t *testing.T) {
 		So(err, ShouldBeNil)
 		Convey("I should be able to fetch metrics", func() {
 			// Fetch that server's metrics
-			points, err := scrapper.Fetch(ctx, serverURL)
+			points, err := scrapper.Fetch(ctx, serverURL, "Test cluster")
 			So(err, ShouldBeNil)
 			Convey("and should get a large number of points back by default", func() {
 				for _, p := range points {
