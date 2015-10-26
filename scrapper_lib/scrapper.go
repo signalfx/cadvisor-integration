@@ -24,9 +24,9 @@ var _ logger = &log.Logger{}
 
 // Scrapper can fetch prometheus metrics and convert them into datapoints
 type Scrapper struct {
-	client    *http.Client
-	userAgent string
-	l         logger
+	Client    *http.Client
+	UserAgent string
+	L         logger
 }
 
 type cancelableRequest interface {
@@ -34,19 +34,20 @@ type cancelableRequest interface {
 }
 
 // Fetch prometheus points from an endpoint and convert them to datapoints
-func (s *Scrapper) Fetch(ctx context.Context, endpoint *url.URL) ([]*datapoint.Datapoint, error) {
+func (s *Scrapper) Fetch(ctx context.Context, endpoint *url.URL, clusterName string) ([]*datapoint.Datapoint, error) {
 	req, err := http.NewRequest("GET", endpoint.String(), nil)
 	if err != nil {
 		return nil, err
 	}
 	accept := fmt.Sprintf("application/vnd.google.protobuf; proto=io.prometheus.client.MetricFamily; encoding=delimited, text/plain; version=%s", prometheus.APIVersion)
 	req.Header.Add("Accept", accept)
-	if s.userAgent != "" {
-		req.Header.Add("User-Agent", s.userAgent)
+	if s.UserAgent != "" {
+		req.Header.Add("User-Agent", s.UserAgent)
 	}
+	//s.L.Printf("req: %v\n", req)
 	doneWaiting := make(chan struct{})
 	defer close(doneWaiting)
-	if cr, ok := s.client.Transport.(cancelableRequest); ok {
+	if cr, ok := s.Client.Transport.(cancelableRequest); ok {
 		go func() {
 			select {
 			case <-ctx.Done():
@@ -55,7 +56,7 @@ func (s *Scrapper) Fetch(ctx context.Context, endpoint *url.URL) ([]*datapoint.D
 			}
 		}()
 	}
-	resp, err := s.client.Do(req)
+	resp, err := s.Client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -67,12 +68,12 @@ func (s *Scrapper) Fetch(ctx context.Context, endpoint *url.URL) ([]*datapoint.D
 		return nil, err
 	}
 	defer func() {
-		logIfErr(s.l, resp.Body.Close(), "could not close response body")
+		logIfErr(s.L, resp.Body.Close(), "could not close response body")
 	}()
 	mf, err := parseAsProto(bodyBytes.Bytes())
 	// TODO: Also parse text format
-	logIfErr(s.l, err, "Unable to parse protocol buffers")
-	return prometheusToSignalFx(mf), nil
+	logIfErr(s.L, err, "Unable to parse protocol buffers. err: %v", err)
+	return prometheusToSignalFx(mf, clusterName), err
 }
 
 func logIfErr(l logger, err error, msg string, args ...interface{}) {
@@ -81,7 +82,7 @@ func logIfErr(l logger, err error, msg string, args ...interface{}) {
 	}
 }
 
-func prometheusToSignalFx(propoints []*dto.MetricFamily) []*datapoint.Datapoint {
+func prometheusToSignalFx(propoints []*dto.MetricFamily, clusterName string) []*datapoint.Datapoint {
 	ret := make([]*datapoint.Datapoint, 0, len(propoints))
 	for _, pp := range propoints {
 		metricName := pp.GetName()
@@ -95,6 +96,7 @@ func prometheusToSignalFx(propoints []*dto.MetricFamily) []*datapoint.Datapoint 
 					dims[key] = value
 				}
 			}
+			dims["clusterName"] = clusterName;
 			mc := convertMeric(m)
 			timestamp := time.Unix(0, tsMs*time.Millisecond.Nanoseconds())
 			for _, conv := range mc {

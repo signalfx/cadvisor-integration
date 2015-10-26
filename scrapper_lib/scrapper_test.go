@@ -22,8 +22,8 @@ func TestScrapper(t *testing.T) {
 
 		// Create a prometheus scraper
 		scrapper := Scrapper{
-			client: http.DefaultClient,
-			l:      log.New(ioutil.Discard, "", 0),
+			Client: http.DefaultClient,
+			L:      log.New(ioutil.Discard, "", 0),
 		}
 		ctx := context.Background()
 		serverURL, err := url.Parse(server.URL)
