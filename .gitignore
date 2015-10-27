@@ -1,2 +1,3 @@
 *.iml
 /prometheustosignalfx
+/cmd/prometheustosfx/prometheustosfx

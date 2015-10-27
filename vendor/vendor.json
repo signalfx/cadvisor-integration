@@ -63,6 +63,11 @@
 			"revisionTime": "2015-05-30T12:53:56-07:00"
 		},
 		{
+			"path": "github.com/jtolds/gls",
+			"revision": "9a4a02dbe491bef4bab3c24fd9f3087d6c4c6690",
+			"revisionTime": "2015-04-01T00:43:43-06:00"
+		},
+		{
 			"path": "github.com/matttproud/golang_protobuf_extensions/pbutil",
 			"revision": "d0c3fe89de86839aecf2e0579c40ba3bb336a453",
 			"revisionTime": "2015-10-11T12:25:29+02:00"
@@ -158,9 +163,29 @@
 			"revisionTime": "2015-10-26T17:04:27-07:00"
 		},
 		{
-			"path": "github.com/signalfx/prometheustosignalfx/scrapper",
-			"revision": "d689163e3087db24155e382c3f7d16b8c2d5b84e",
-			"revisionTime": "2015-10-27T08:56:27-07:00"
+			"path": "github.com/smartystreets/assertions",
+			"revision": "ac6b6f68ca3d6ac00a360d0fad0c844859ad131b",
+			"revisionTime": "2015-08-10T17:06:21-06:00"
+		},
+		{
+			"path": "github.com/smartystreets/assertions/internal/oglematchers",
+			"revision": "ac6b6f68ca3d6ac00a360d0fad0c844859ad131b",
+			"revisionTime": "2015-08-10T17:06:21-06:00"
+		},
+		{
+			"path": "github.com/smartystreets/goconvey/convey",
+			"revision": "6a613dfb77d9fd2df760901a46339b33694d9bd1",
+			"revisionTime": "2015-09-09T14:07:04-06:00"
+		},
+		{
+			"path": "github.com/smartystreets/goconvey/convey/gotest",
+			"revision": "6a613dfb77d9fd2df760901a46339b33694d9bd1",
+			"revisionTime": "2015-09-09T14:07:04-06:00"
+		},
+		{
+			"path": "github.com/smartystreets/goconvey/convey/reporting",
+			"revision": "6a613dfb77d9fd2df760901a46339b33694d9bd1",
+			"revisionTime": "2015-09-09T14:07:04-06:00"
 		},
 		{
 			"path": "golang.org/x/net/context",
