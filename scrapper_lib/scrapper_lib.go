@@ -1,4 +1,4 @@
-package main
+package scrapper_lib
 
 import (
 	"bytes"
@@ -60,7 +60,6 @@ func (s *Scrapper) Fetch(ctx context.Context, endpoint *url.URL, clusterName str
 	if err != nil {
 		return nil, err
 	}
-	// TODO: Chek for http 200 response code
 	// contentType := resp.Header.Get("Content-Type")
 	bodyBytes := &bytes.Buffer{}
 	_, err = io.Copy(bodyBytes, resp.Body)
@@ -96,7 +95,7 @@ func prometheusToSignalFx(propoints []*dto.MetricFamily, clusterName string) []*
 					dims[key] = value
 				}
 			}
-			dims["clusterName"] = clusterName;
+			dims["clusterName"] = clusterName
 			mc := convertMeric(m)
 			timestamp := time.Unix(0, tsMs*time.Millisecond.Nanoseconds())
 			for _, conv := range mc {
