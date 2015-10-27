@@ -1,0 +1,171 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"path": "bitbucket.org/ww/goautoneg",
+			"revision": "75cd24fc2f2c",
+			"revisionTime": "2012-07-07T21:04:53+10:00"
+		},
+		{
+			"path": "github.com/Sirupsen/logrus",
+			"revision": "9c060de643590dae45da9d7c26276463bfc46fa0",
+			"revisionTime": "2015-08-08T03:20:48-04:00"
+		},
+		{
+			"path": "github.com/beorn7/perks/quantile",
+			"revision": "b965b613227fddccbfffe13eae360ed3fa822f8d",
+			"revisionTime": "2015-02-23T14:51:52+01:00"
+		},
+		{
+			"path": "github.com/cep21/gohelpers/stringhelper",
+			"revision": "dc600e06e5851ba613dba1949f9ae1b7641cb80c",
+			"revisionTime": "2015-08-10T10:18:22-07:00"
+		},
+		{
+			"path": "github.com/cep21/gohelpers/structdefaults",
+			"revision": "dc600e06e5851ba613dba1949f9ae1b7641cb80c",
+			"revisionTime": "2015-08-10T10:18:22-07:00"
+		},
+		{
+			"path": "github.com/cep21/gohelpers/workarounds",
+			"revision": "dc600e06e5851ba613dba1949f9ae1b7641cb80c",
+			"revisionTime": "2015-08-10T10:18:22-07:00"
+		},
+		{
+			"path": "github.com/cep21/xdgbasedir",
+			"revision": "b123604ccc445c5759d1bc3b425defff797c3d8c",
+			"revisionTime": "2015-05-08T23:14:33-07:00"
+		},
+		{
+			"path": "github.com/codegangsta/cli",
+			"revision": "50c77ecec0068c9aef9d90ae0fd0fdf410041da3",
+			"revisionTime": "2015-02-20T16:21:27-05:00"
+		},
+		{
+			"path": "github.com/gogo/protobuf/proto",
+			"revision": "2093b57e5ca2ccbee4626814100bc1aada691b18",
+			"revisionTime": "2015-09-16T13:01:26+02:00"
+		},
+		{
+			"path": "github.com/golang/protobuf/proto",
+			"revision": "9ebc6c4ed925b1323a0b11cea09e527cdc4e557c",
+			"revisionTime": "2015-10-20T08:33:00+11:00"
+		},
+		{
+			"path": "github.com/gorilla/context",
+			"revision": "215affda49addc4c8ef7e2534915df2c8c35c6cd",
+			"revisionTime": "2014-12-17T08:02:51-08:00"
+		},
+		{
+			"path": "github.com/gorilla/mux",
+			"revision": "47e8f450ef38c857cdd922ec08862ca9d65a1c6d",
+			"revisionTime": "2015-05-30T12:53:56-07:00"
+		},
+		{
+			"path": "github.com/matttproud/golang_protobuf_extensions/pbutil",
+			"revision": "d0c3fe89de86839aecf2e0579c40ba3bb336a453",
+			"revisionTime": "2015-10-11T12:25:29+02:00"
+		},
+		{
+			"path": "github.com/prometheus/client_golang/prometheus",
+			"revision": "e51041b3fa41cece0dca035740ba6411905be473",
+			"revisionTime": "2015-10-08T16:32:47+02:00"
+		},
+		{
+			"path": "github.com/prometheus/client_model/go",
+			"revision": "fa8ad6fec33561be4280a8f0514318c79d7f6cb6",
+			"revisionTime": "2015-02-12T10:17:44Z"
+		},
+		{
+			"path": "github.com/prometheus/common/expfmt",
+			"revision": "ffe929a3f4c4faeaa10f2b9535c2b1be3ad15650",
+			"revisionTime": "2015-10-14T06:50:50+01:00"
+		},
+		{
+			"path": "github.com/prometheus/common/model",
+			"revision": "ffe929a3f4c4faeaa10f2b9535c2b1be3ad15650",
+			"revisionTime": "2015-10-14T06:50:50+01:00"
+		},
+		{
+			"path": "github.com/prometheus/procfs",
+			"revision": "454a56f35412459b5e684fd5ec0f9211b94f002a",
+			"revisionTime": "2015-09-28T13:39:26-04:00"
+		},
+		{
+			"path": "github.com/signalfx/com_signalfx_metrics_protobuf",
+			"revision": "3f07c0108fbfbcf93508e4ab61a080953136fdf9",
+			"revisionTime": "2015-04-02T10:32:00-07:00"
+		},
+		{
+			"path": "github.com/signalfx/golib/datapoint",
+			"revision": "084a8a02084a8d09a33ae190ba20a6772dbf4011",
+			"revisionTime": "2015-10-26T17:32:46-07:00"
+		},
+		{
+			"path": "github.com/signalfx/golib/event",
+			"revision": "084a8a02084a8d09a33ae190ba20a6772dbf4011",
+			"revisionTime": "2015-10-26T17:32:46-07:00"
+		},
+		{
+			"path": "github.com/signalfx/golib/timekeeper",
+			"revision": "084a8a02084a8d09a33ae190ba20a6772dbf4011",
+			"revisionTime": "2015-10-26T17:32:46-07:00"
+		},
+		{
+			"path": "github.com/signalfx/golib/web",
+			"revision": "084a8a02084a8d09a33ae190ba20a6772dbf4011",
+			"revisionTime": "2015-10-26T17:32:46-07:00"
+		},
+		{
+			"path": "github.com/signalfx/metricproxy/config",
+			"revision": "c70bb1c14b77490dca2cbb18889895167b19b300",
+			"revisionTime": "2015-10-26T17:04:27-07:00"
+		},
+		{
+			"path": "github.com/signalfx/metricproxy/dp/dpbuffered",
+			"revision": "c70bb1c14b77490dca2cbb18889895167b19b300",
+			"revisionTime": "2015-10-26T17:04:27-07:00"
+		},
+		{
+			"path": "github.com/signalfx/metricproxy/dp/dplocal",
+			"revision": "c70bb1c14b77490dca2cbb18889895167b19b300",
+			"revisionTime": "2015-10-26T17:04:27-07:00"
+		},
+		{
+			"path": "github.com/signalfx/metricproxy/dp/dpsink",
+			"revision": "c70bb1c14b77490dca2cbb18889895167b19b300",
+			"revisionTime": "2015-10-26T17:04:27-07:00"
+		},
+		{
+			"path": "github.com/signalfx/metricproxy/protocol",
+			"revision": "c70bb1c14b77490dca2cbb18889895167b19b300",
+			"revisionTime": "2015-10-26T17:04:27-07:00"
+		},
+		{
+			"path": "github.com/signalfx/metricproxy/protocol/collectd",
+			"revision": "c70bb1c14b77490dca2cbb18889895167b19b300",
+			"revisionTime": "2015-10-26T17:04:27-07:00"
+		},
+		{
+			"path": "github.com/signalfx/metricproxy/protocol/signalfx",
+			"revision": "c70bb1c14b77490dca2cbb18889895167b19b300",
+			"revisionTime": "2015-10-26T17:04:27-07:00"
+		},
+		{
+			"path": "github.com/signalfx/metricproxy/stats",
+			"revision": "c70bb1c14b77490dca2cbb18889895167b19b300",
+			"revisionTime": "2015-10-26T17:04:27-07:00"
+		},
+		{
+			"path": "github.com/signalfx/prometheustosignalfx/scrapper_lib",
+			"revision": "0561f4bb195d844deadfc379ca829ed06b5d262d",
+			"revisionTime": "2015-10-27T08:49:06-07:00"
+		},
+		{
+			"path": "golang.org/x/net/context",
+			"revision": "9946ad7d5eae91d8edca4f54d1a1e130a052e823",
+			"revisionTime": "2015-10-20T22:50:55Z"
+		}
+	]
+}
