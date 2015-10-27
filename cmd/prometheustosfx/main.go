@@ -17,7 +17,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/signalfx/metricproxy/protocol/signalfx"
-	"github.com/signalfx/prometheustosignalfx/scrapper_lib"
+	"github.com/signalfx/prometheustosignalfx/scrapper"
 
 	"github.com/codegangsta/cli"
 )
