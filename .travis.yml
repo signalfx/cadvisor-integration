@@ -13,4 +13,4 @@ install:
 script:
   - export GO15VENDOREXPERIMENT=1
   - cd ./cmd && gobuild && cd -
-  - go get -u ./... && gobuild
+  - cd ./scrapper && go get -u ./... && gobuild && cd -
