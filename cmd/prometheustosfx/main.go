@@ -22,10 +22,11 @@ import (
 	"github.com/codegangsta/cli"
 )
 
+// Config for prometheusScraper
 type Config struct {
-	IngestUrl    string
-	CadvisorUrl  string
-	ApiToken     string
+	IngestURL    string
+	CadvisorURL  string
+	APIToken     string
 	DataSendRate string
 	ClusterName  string
 }
@@ -35,7 +36,7 @@ type prometheusScraper struct {
 	cfg       *Config
 }
 
-const ingestUrl = "ingestURL"
+const ingestURL = "ingestURL"
 const apiToken = "apiToken"
 const cadvisorURL = "cadvisorURL"
 const dataSendRate = "sendRate"
@@ -58,7 +59,7 @@ func main() {
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:  ingestUrl,
+			Name:  ingestURL,
 			Value: "https://ingest.signalfx.com",
 			Usage: "SignalFx ingest URL.",
 		},
@@ -86,8 +87,8 @@ func main() {
 
 	app.Action = func(c *cli.Context) {
 
-		var paramApiToken = c.String(apiToken)
-		if paramApiToken == "" {
+		var paramAPIToken = c.String(apiToken)
+		if paramAPIToken == "" {
 			fmt.Fprintf(os.Stderr, "\nERROR: apiToken must be set.\n\n")
 			cli.ShowAppHelp(c)
 			os.Exit(1)
@@ -114,19 +115,19 @@ func main() {
 			os.Exit(1)
 		}
 
-		var paramIngestUrl = c.String(ingestUrl)
-		if paramIngestUrl == "" {
+		var paramIngestURL = c.String(ingestURL)
+		if paramIngestURL == "" {
 			fmt.Fprintf(os.Stderr, "\nERROR: ingestUrl must be set.\n\n")
 			cli.ShowAppHelp(c)
 			os.Exit(1)
 		}
 
 		var instance = prometheusScraper{
-			forwarder: newSfxClient(paramIngestUrl, paramApiToken), //"PjzqXDrnlfCn2h1ClAvVig"
+			forwarder: newSfxClient(paramIngestURL, paramAPIToken), //"PjzqXDrnlfCn2h1ClAvVig"
 			cfg: &Config{
-				IngestUrl:    paramIngestUrl,
-				CadvisorUrl:  paramCadvisorURL,
-				ApiToken:     paramApiToken,
+				IngestURL:    paramIngestURL,
+				CadvisorURL:  paramCadvisorURL,
+				APIToken:     paramAPIToken,
 				DataSendRate: c.String(dataSendRate),
 				ClusterName:  paramClusterName,
 			},
@@ -148,21 +149,21 @@ func getMapKeys(m map[string]time.Duration) (keys []string) {
 	return keys
 }
 
-func newSfxClient(ingestUrl, authToken string) (forwarder *signalfx.Forwarder) {
-	forwarder = signalfx.NewSignalfxJSONForwarder(strings.Join([]string{ingestUrl, "v2/datapoint"}, "/"), time.Second*10, authToken, 10, "", "", "") //http://lab-ingest.corp.signalfuse.com:8080
+func newSfxClient(ingestURL, authToken string) (forwarder *signalfx.Forwarder) {
+	forwarder = signalfx.NewSignalfxJSONForwarder(strings.Join([]string{ingestURL, "v2/datapoint"}, "/"), time.Second*10, authToken, 10, "", "", "") //http://lab-ingest.corp.signalfuse.com:8080
 	forwarder.UserAgent(fmt.Sprintf("SignalFxScrapper/1.0 (gover %s)", runtime.Version()))
 	return
 }
 
 func (p *prometheusScraper) main(paramDataSendRate time.Duration) error {
 
-	scrapper := scrapper_lib.Scrapper{
+	scrapperSFX := scrapper.Scrapper{
 		Client: http.DefaultClient,
 		L:      log.New(os.Stdout, "", 0),
 	}
 
 	ctx := context.Background()
-	serverUrl, err := url.Parse(p.cfg.CadvisorUrl) //"http://192.168.99.100:8080/metrics"
+	serverURL, err := url.Parse(p.cfg.CadvisorURL) //"http://192.168.99.100:8080/metrics"
 	if err != nil {
 		return err
 	}
@@ -173,8 +174,8 @@ func (p *prometheusScraper) main(paramDataSendRate time.Duration) error {
 	stop := make(chan error, 1)
 	ticker := time.NewTicker(paramDataSendRate)
 	go func() {
-		for _ = range ticker.C {
-			points, err := scrapper.Fetch(ctx, serverUrl, p.cfg.ClusterName)
+		for range ticker.C {
+			points, err := scrapperSFX.Fetch(ctx, serverURL, p.cfg.ClusterName)
 			if err != nil {
 				stop <- err
 				return

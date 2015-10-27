@@ -69,7 +69,6 @@ type ProxyConfig struct {
 	LogMaxSize         *int
 	LogMaxBackups      *int
 	LogFormat          *string
-	LogLevel           *string
 }
 
 func decodeConfig(configBytes []byte) (*ProxyConfig, error) {

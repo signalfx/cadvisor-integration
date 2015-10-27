@@ -3,14 +3,9 @@
 	"ignore": "test",
 	"package": [
 		{
-			"path": "bitbucket.org/ww/goautoneg",
-			"revision": "75cd24fc2f2c",
-			"revisionTime": "2012-07-07T21:04:53+10:00"
-		},
-		{
 			"path": "github.com/Sirupsen/logrus",
-			"revision": "9c060de643590dae45da9d7c26276463bfc46fa0",
-			"revisionTime": "2015-08-08T03:20:48-04:00"
+			"revision": "62f85a2e398fb4cae34ecd1db528422ede248d3c",
+			"revisionTime": "2015-10-22T17:52:25-04:00"
 		},
 		{
 			"path": "github.com/beorn7/perks/quantile",
@@ -39,33 +34,28 @@
 		},
 		{
 			"path": "github.com/codegangsta/cli",
-			"revision": "50c77ecec0068c9aef9d90ae0fd0fdf410041da3",
-			"revisionTime": "2015-02-20T16:21:27-05:00"
+			"revision": "f445c894402839580d30de47551cedc152dad814",
+			"revisionTime": "2015-10-21T22:00:38-07:00"
 		},
 		{
 			"path": "github.com/gogo/protobuf/proto",
-			"revision": "2093b57e5ca2ccbee4626814100bc1aada691b18",
-			"revisionTime": "2015-09-16T13:01:26+02:00"
+			"revision": "04145330265d088c218da8916c50eab3814c76a0",
+			"revisionTime": "2015-10-20T13:32:22+02:00"
 		},
 		{
 			"path": "github.com/golang/protobuf/proto",
-			"revision": "9ebc6c4ed925b1323a0b11cea09e527cdc4e557c",
-			"revisionTime": "2015-10-20T08:33:00+11:00"
+			"revision": "5baca1b63153b1a82014546382edbdd302b138b6",
+			"revisionTime": "2015-10-23T13:49:00+11:00"
 		},
 		{
 			"path": "github.com/gorilla/context",
-			"revision": "215affda49addc4c8ef7e2534915df2c8c35c6cd",
-			"revisionTime": "2014-12-17T08:02:51-08:00"
+			"revision": "1c83b3eabd45b6d76072b66b746c20815fb2872d",
+			"revisionTime": "2015-08-19T22:12:45-07:00"
 		},
 		{
 			"path": "github.com/gorilla/mux",
-			"revision": "47e8f450ef38c857cdd922ec08862ca9d65a1c6d",
-			"revisionTime": "2015-05-30T12:53:56-07:00"
-		},
-		{
-			"path": "github.com/jtolds/gls",
-			"revision": "9a4a02dbe491bef4bab3c24fd9f3087d6c4c6690",
-			"revisionTime": "2015-04-01T00:43:43-06:00"
+			"revision": "ad4d7a5882b961e07e2626045eb995c022ac6664",
+			"revisionTime": "2015-10-03T15:26:51+08:00"
 		},
 		{
 			"path": "github.com/matttproud/golang_protobuf_extensions/pbutil",
@@ -74,8 +64,8 @@
 		},
 		{
 			"path": "github.com/prometheus/client_golang/prometheus",
-			"revision": "e51041b3fa41cece0dca035740ba6411905be473",
-			"revisionTime": "2015-10-08T16:32:47+02:00"
+			"revision": "449ccefff16c8e2b7229f6be1921ba22f62461fe",
+			"revisionTime": "2015-10-26T02:27:06+01:00"
 		},
 		{
 			"path": "github.com/prometheus/client_model/go",
@@ -84,18 +74,23 @@
 		},
 		{
 			"path": "github.com/prometheus/common/expfmt",
-			"revision": "ffe929a3f4c4faeaa10f2b9535c2b1be3ad15650",
-			"revisionTime": "2015-10-14T06:50:50+01:00"
+			"revision": "4fdc91a58c9d3696b982e8a680f4997403132d44",
+			"revisionTime": "2015-10-26T12:04:34+01:00"
+		},
+		{
+			"path": "github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg",
+			"revision": "4fdc91a58c9d3696b982e8a680f4997403132d44",
+			"revisionTime": "2015-10-26T12:04:34+01:00"
 		},
 		{
 			"path": "github.com/prometheus/common/model",
-			"revision": "ffe929a3f4c4faeaa10f2b9535c2b1be3ad15650",
-			"revisionTime": "2015-10-14T06:50:50+01:00"
+			"revision": "4fdc91a58c9d3696b982e8a680f4997403132d44",
+			"revisionTime": "2015-10-26T12:04:34+01:00"
 		},
 		{
 			"path": "github.com/prometheus/procfs",
-			"revision": "454a56f35412459b5e684fd5ec0f9211b94f002a",
-			"revisionTime": "2015-09-28T13:39:26-04:00"
+			"revision": "b1afdc266f54247f5dc725544f5d351a8661f502",
+			"revisionTime": "2015-10-26T02:22:47+01:00"
 		},
 		{
 			"path": "github.com/signalfx/com_signalfx_metrics_protobuf",
@@ -104,93 +99,73 @@
 		},
 		{
 			"path": "github.com/signalfx/golib/datapoint",
-			"revision": "084a8a02084a8d09a33ae190ba20a6772dbf4011",
-			"revisionTime": "2015-10-26T17:32:46-07:00"
+			"revision": "e19afc4871cd9a32921a2183e30eab0b1809248a",
+			"revisionTime": "2015-10-19T11:34:32-07:00"
 		},
 		{
 			"path": "github.com/signalfx/golib/event",
-			"revision": "084a8a02084a8d09a33ae190ba20a6772dbf4011",
-			"revisionTime": "2015-10-26T17:32:46-07:00"
+			"revision": "e19afc4871cd9a32921a2183e30eab0b1809248a",
+			"revisionTime": "2015-10-19T11:34:32-07:00"
 		},
 		{
 			"path": "github.com/signalfx/golib/timekeeper",
-			"revision": "084a8a02084a8d09a33ae190ba20a6772dbf4011",
-			"revisionTime": "2015-10-26T17:32:46-07:00"
+			"revision": "e19afc4871cd9a32921a2183e30eab0b1809248a",
+			"revisionTime": "2015-10-19T11:34:32-07:00"
 		},
 		{
 			"path": "github.com/signalfx/golib/web",
-			"revision": "084a8a02084a8d09a33ae190ba20a6772dbf4011",
-			"revisionTime": "2015-10-26T17:32:46-07:00"
+			"revision": "e19afc4871cd9a32921a2183e30eab0b1809248a",
+			"revisionTime": "2015-10-19T11:34:32-07:00"
 		},
 		{
 			"path": "github.com/signalfx/metricproxy/config",
-			"revision": "c70bb1c14b77490dca2cbb18889895167b19b300",
-			"revisionTime": "2015-10-26T17:04:27-07:00"
+			"revision": "ecf58055ab3f5c4dcb2edd70044c04663e8be7b0",
+			"revisionTime": "2015-10-09T11:38:59-07:00"
 		},
 		{
 			"path": "github.com/signalfx/metricproxy/dp/dpbuffered",
-			"revision": "c70bb1c14b77490dca2cbb18889895167b19b300",
-			"revisionTime": "2015-10-26T17:04:27-07:00"
+			"revision": "ecf58055ab3f5c4dcb2edd70044c04663e8be7b0",
+			"revisionTime": "2015-10-09T11:38:59-07:00"
 		},
 		{
 			"path": "github.com/signalfx/metricproxy/dp/dplocal",
-			"revision": "c70bb1c14b77490dca2cbb18889895167b19b300",
-			"revisionTime": "2015-10-26T17:04:27-07:00"
+			"revision": "ecf58055ab3f5c4dcb2edd70044c04663e8be7b0",
+			"revisionTime": "2015-10-09T11:38:59-07:00"
 		},
 		{
 			"path": "github.com/signalfx/metricproxy/dp/dpsink",
-			"revision": "c70bb1c14b77490dca2cbb18889895167b19b300",
-			"revisionTime": "2015-10-26T17:04:27-07:00"
+			"revision": "ecf58055ab3f5c4dcb2edd70044c04663e8be7b0",
+			"revisionTime": "2015-10-09T11:38:59-07:00"
 		},
 		{
 			"path": "github.com/signalfx/metricproxy/protocol",
-			"revision": "c70bb1c14b77490dca2cbb18889895167b19b300",
-			"revisionTime": "2015-10-26T17:04:27-07:00"
+			"revision": "ecf58055ab3f5c4dcb2edd70044c04663e8be7b0",
+			"revisionTime": "2015-10-09T11:38:59-07:00"
 		},
 		{
 			"path": "github.com/signalfx/metricproxy/protocol/collectd",
-			"revision": "c70bb1c14b77490dca2cbb18889895167b19b300",
-			"revisionTime": "2015-10-26T17:04:27-07:00"
+			"revision": "ecf58055ab3f5c4dcb2edd70044c04663e8be7b0",
+			"revisionTime": "2015-10-09T11:38:59-07:00"
 		},
 		{
 			"path": "github.com/signalfx/metricproxy/protocol/signalfx",
-			"revision": "c70bb1c14b77490dca2cbb18889895167b19b300",
-			"revisionTime": "2015-10-26T17:04:27-07:00"
+			"revision": "ecf58055ab3f5c4dcb2edd70044c04663e8be7b0",
+			"revisionTime": "2015-10-09T11:38:59-07:00"
 		},
 		{
 			"path": "github.com/signalfx/metricproxy/stats",
-			"revision": "c70bb1c14b77490dca2cbb18889895167b19b300",
-			"revisionTime": "2015-10-26T17:04:27-07:00"
-		},
-		{
-			"path": "github.com/smartystreets/assertions",
-			"revision": "ac6b6f68ca3d6ac00a360d0fad0c844859ad131b",
-			"revisionTime": "2015-08-10T17:06:21-06:00"
-		},
-		{
-			"path": "github.com/smartystreets/assertions/internal/oglematchers",
-			"revision": "ac6b6f68ca3d6ac00a360d0fad0c844859ad131b",
-			"revisionTime": "2015-08-10T17:06:21-06:00"
+			"revision": "ecf58055ab3f5c4dcb2edd70044c04663e8be7b0",
+			"revisionTime": "2015-10-09T11:38:59-07:00"
 		},
 		{
 			"path": "github.com/smartystreets/goconvey/convey",
-			"revision": "6a613dfb77d9fd2df760901a46339b33694d9bd1",
-			"revisionTime": "2015-09-09T14:07:04-06:00"
-		},
-		{
-			"path": "github.com/smartystreets/goconvey/convey/gotest",
-			"revision": "6a613dfb77d9fd2df760901a46339b33694d9bd1",
-			"revisionTime": "2015-09-09T14:07:04-06:00"
-		},
-		{
-			"path": "github.com/smartystreets/goconvey/convey/reporting",
-			"revision": "6a613dfb77d9fd2df760901a46339b33694d9bd1",
-			"revisionTime": "2015-09-09T14:07:04-06:00"
+			"revision": "530dd3d2cafa09958178e8c557bc4abeea1651a5",
+			"revisionTime": "2015-10-26T10:41:00-06:00"
 		},
 		{
 			"path": "golang.org/x/net/context",
-			"revision": "9946ad7d5eae91d8edca4f54d1a1e130a052e823",
-			"revisionTime": "2015-10-20T22:50:55Z"
+			"revision": "2cba614e8ff920c60240d2677bc019af32ee04e5",
+			"revisionTime": "2015-10-21T11:20:37-06:00"
 		}
 	]
 }

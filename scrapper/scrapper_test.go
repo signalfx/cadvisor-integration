@@ -1,4 +1,4 @@
-package scrapper_lib
+package scrapper
 
 import (
 	"net/http"
