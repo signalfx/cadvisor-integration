@@ -5,8 +5,8 @@
   [metalinter.enabled]
     golint = true
     gofmt = true
-    varcheck = true
-    aligncheck = true
+    varcheck = false
+    aligncheck = false
     gocyclo = true
     vet = true
     deadcode = true
