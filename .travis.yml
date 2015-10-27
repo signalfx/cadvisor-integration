@@ -8,10 +8,8 @@ go:
 
 install:
  - go get -u github.com/cep21/gobuild
- - go get github.com/codegangsta/cli github.com/signalfx/golib/datapoint github.com/signalfx/metricproxy/protocol/signalfx github.com/gogo/protobuf/proto github.com/prometheus/client_golang/prometheus github.com/prometheus/client_model/go
 
 
 script:
   - export GO15VENDOREXPERIMENT=1
-  - gobuild
-  - go build github.com/signalfx/prometheustosignalfx/scrapper
+  - cd ./cmd && gobuild && cd -
