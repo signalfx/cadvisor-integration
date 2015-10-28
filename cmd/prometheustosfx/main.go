@@ -20,12 +20,13 @@ import (
 	"github.com/signalfx/prometheustosignalfx/scrapper"
 
 	"github.com/codegangsta/cli"
+	"github.com/goinggo/workpool"
 )
 
 // Config for prometheusScraper
 type Config struct {
 	IngestURL    string
-	CadvisorURL  string
+	CadvisorURL  []string
 	APIToken     string
 	DataSendRate string
 	ClusterName  string
@@ -34,6 +35,25 @@ type Config struct {
 type prometheusScraper struct {
 	forwarder *signalfx.Forwarder
 	cfg       *Config
+}
+
+type scrapWork struct {
+	ctx         context.Context
+	scrapperSFX *scrapper.Scrapper
+	serverURL   *url.URL
+	clusterName string
+	stop        chan error
+	forwarder   *signalfx.Forwarder
+}
+
+func (scrapWork *scrapWork) DoWork(workRoutine int) {
+	points, err := scrapWork.scrapperSFX.Fetch(scrapWork.ctx, scrapWork.serverURL, scrapWork.clusterName)
+	if err != nil {
+		scrapWork.stop <- err
+		return
+	}
+
+	scrapWork.forwarder.AddDatapoints(scrapWork.ctx, points)
 }
 
 const ingestURL = "ingestURL"
@@ -53,8 +73,10 @@ var dataSendRates = map[string]time.Duration{
 }
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
 	app := cli.NewApp()
-	app.Name = "scrapper"
+	app.Name = "prometheustosfx"
 	app.Usage = "scraps metrics from cAdvisor and forwards them to SignalFx."
 
 	app.Flags = []cli.Flag{
@@ -68,9 +90,9 @@ func main() {
 			Usage:  "API token.",
 			EnvVar: "SFX_SCRAPPER_API_TOKEN",
 		},
-		cli.StringFlag{
+		cli.StringSliceFlag{
 			Name:   cadvisorURL,
-			Usage:  "cAdvisor URL.",
+			Usage:  "cAdvisor URLs. Env. Var. example: SFX_SCRAPPER_CADVISOR_URL=<addr#1>,<arrd#2>,...",
 			EnvVar: "SFX_SCRAPPER_CADVISOR_URL",
 		},
 		cli.StringFlag{
@@ -101,8 +123,8 @@ func main() {
 			os.Exit(1)
 		}
 
-		var paramCadvisorURL = c.String(cadvisorURL)
-		if paramCadvisorURL == "" {
+		var paramCadvisorURL = c.StringSlice(cadvisorURL)
+		if paramCadvisorURL == nil || len(paramCadvisorURL) == 0 {
 			fmt.Fprintf(os.Stderr, "\nERROR: cadvisorURL must be set.\n\n")
 			cli.ShowAppHelp(c)
 			os.Exit(1)
@@ -155,7 +177,7 @@ func newSfxClient(ingestURL, authToken string) (forwarder *signalfx.Forwarder) {
 	return
 }
 
-func (p *prometheusScraper) main(paramDataSendRate time.Duration) error {
+func (p *prometheusScraper) main(paramDataSendRate time.Duration) (err error) {
 
 	scrapperSFX := scrapper.Scrapper{
 		Client: http.DefaultClient,
@@ -163,43 +185,38 @@ func (p *prometheusScraper) main(paramDataSendRate time.Duration) error {
 	}
 
 	ctx := context.Background()
-	serverURL, err := url.Parse(p.cfg.CadvisorURL) //"http://192.168.99.100:8080/metrics"
-	if err != nil {
-		return err
+	cadvisorServers := make([]*url.URL, len(p.cfg.CadvisorURL))
+	for i, serverURL := range p.cfg.CadvisorURL {
+		cadvisorServers[i], err = url.Parse(serverURL)
+		if err != nil {
+			return err
+		}
 	}
 
 	cfg, _ := json.MarshalIndent(p.cfg, "", "  ")
 	fmt.Printf("Scrapper started with following params:\n%v\n", string(cfg))
 
+	workPool := workpool.New(runtime.NumCPU(), int32(len(p.cfg.CadvisorURL)+1))
+
 	stop := make(chan error, 1)
 	ticker := time.NewTicker(paramDataSendRate)
 	go func() {
 		for range ticker.C {
-			points, err := scrapperSFX.Fetch(ctx, serverURL, p.cfg.ClusterName)
-			if err != nil {
-				stop <- err
-				return
+			for _, serverURL := range cadvisorServers {
+				workPool.PostWork("", &scrapWork{
+					ctx:         ctx,
+					scrapperSFX: &scrapperSFX,
+					serverURL:   serverURL,
+					clusterName: p.cfg.ClusterName,
+					stop:        stop,
+					forwarder:   p.forwarder,
+				})
 			}
-
-			p.forwarder.AddDatapoints(ctx, points)
 		}
 	}()
 	err = <-stop
 
 	ticker.Stop()
 
-	/*for {
-		points, err := scrapper.Fetch(ctx, serverUrl)
-		if err != nil {
-			return err
-		}
-
-		p.forwarder.AddDatapoints(ctx, points)
-	}*/
-
-	/*for _, p := range points {
-		b, _ := json.Marshal(p)
-		fmt.Printf("%s\n", b)
-	}*/
 	return err
 }

@@ -43,6 +43,11 @@
 			"revisionTime": "2015-10-20T13:32:22+02:00"
 		},
 		{
+			"path": "github.com/goinggo/workpool",
+			"revision": "10f0359c48874f2bec5028f036e85ce0cccfe665",
+			"revisionTime": "2014-07-17T14:36:48-04:00"
+		},
+		{
 			"path": "github.com/golang/protobuf/proto",
 			"revision": "5baca1b63153b1a82014546382edbdd302b138b6",
 			"revisionTime": "2015-10-23T13:49:00+11:00"
