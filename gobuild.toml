@@ -7,6 +7,6 @@
     gofmt = true
     varcheck = false
     aligncheck = false
-    gocyclo = true
+    gocyclo = false
     vet = true
     deadcode = true
