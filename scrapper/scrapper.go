@@ -69,6 +69,7 @@ func (s *Scrapper) Fetch(ctx context.Context, endpoint *url.URL, clusterName str
 	defer func() {
 		logIfErr(s.L, resp.Body.Close(), "could not close response body")
 	}()
+	s.L.Printf("%v\n", string(bodyBytes.Bytes()))
 	mf, err := parseAsProto(bodyBytes.Bytes())
 	// TODO: Also parse text format
 	logIfErr(s.L, err, "Unable to parse protocol buffers. err: %v", err)
@@ -96,17 +97,18 @@ func prometheusToSignalFx(propoints []*dto.MetricFamily, clusterName string) []*
 				}
 			}
 			dims["clusterName"] = clusterName
-			mc := convertMeric(m)
+			mc := ConvertMeric(m)
 			timestamp := time.Unix(0, tsMs*time.Millisecond.Nanoseconds())
 			for _, conv := range mc {
-				ret = append(ret, datapoint.New(metricName+conv.metricNameSuffix, appendDims(dims, conv.extraDims), conv.value, conv.mtype, timestamp))
+				ret = append(ret, datapoint.New(metricName+conv.MetricNameSuffix, AppendDims(dims, conv.ExtraDims), conv.Value, conv.MType, timestamp))
 			}
 		}
 	}
 	return ret
 }
 
-func appendDims(a map[string]string, b map[string]string) map[string]string {
+//AppendDims appends dimmensions
+func AppendDims(a map[string]string, b map[string]string) map[string]string {
 	ret := make(map[string]string, len(a)+len(b))
 	for k, v := range a {
 		ret[k] = v
@@ -117,41 +119,42 @@ func appendDims(a map[string]string, b map[string]string) map[string]string {
 	return ret
 }
 
-func convertMeric(m *dto.Metric) []metricConversion {
+//ConvertMeric converts meric to MetricConversion
+func ConvertMeric(m *dto.Metric) []MetricConversion {
 	if m.Counter != nil {
-		return []metricConversion{
+		return []MetricConversion{
 			{
-				mtype: datapoint.Counter,
-				value: datapoint.NewFloatValue(m.Counter.GetValue()),
+				MType: datapoint.Counter,
+				Value: datapoint.NewFloatValue(m.Counter.GetValue()),
 			},
 		}
 	}
 	if m.Gauge != nil {
-		return []metricConversion{
+		return []MetricConversion{
 			{
-				mtype: datapoint.Gauge,
-				value: datapoint.NewFloatValue(m.Gauge.GetValue()),
+				MType: datapoint.Gauge,
+				Value: datapoint.NewFloatValue(m.Gauge.GetValue()),
 			},
 		}
 	}
 	if m.Summary != nil {
-		ret := []metricConversion{
+		ret := []MetricConversion{
 			{
-				metricNameSuffix: "_sum",
-				mtype:            datapoint.Counter,
-				value:            datapoint.NewFloatValue(m.Summary.GetSampleSum()),
+				MetricNameSuffix: "_sum",
+				MType:            datapoint.Counter,
+				Value:            datapoint.NewFloatValue(m.Summary.GetSampleSum()),
 			},
 			{
-				metricNameSuffix: "_count",
-				mtype:            datapoint.Counter,
-				value:            datapoint.NewIntValue(int64(m.Summary.GetSampleCount())),
+				MetricNameSuffix: "_count",
+				MType:            datapoint.Counter,
+				Value:            datapoint.NewIntValue(int64(m.Summary.GetSampleCount())),
 			},
 		}
 		for _, q := range m.Summary.Quantile {
-			ret = append(ret, metricConversion{
-				mtype: datapoint.Gauge,
-				value: datapoint.NewIntValue(int64(q.GetValue())),
-				extraDims: map[string]string{
+			ret = append(ret, MetricConversion{
+				MType: datapoint.Gauge,
+				Value: datapoint.NewIntValue(int64(q.GetValue())),
+				ExtraDims: map[string]string{
 					"quantile": fmt.Sprintf("%.2f", q.GetQuantile()*100),
 				},
 			})
@@ -159,24 +162,24 @@ func convertMeric(m *dto.Metric) []metricConversion {
 		return ret
 	}
 	if m.Histogram != nil {
-		ret := []metricConversion{
+		ret := []MetricConversion{
 			{
-				metricNameSuffix: "_sum",
-				mtype:            datapoint.Counter,
-				value:            datapoint.NewFloatValue(m.Histogram.GetSampleSum()),
+				MetricNameSuffix: "_sum",
+				MType:            datapoint.Counter,
+				Value:            datapoint.NewFloatValue(m.Histogram.GetSampleSum()),
 			},
 			{
-				metricNameSuffix: "_count",
-				mtype:            datapoint.Counter,
-				value:            datapoint.NewIntValue(int64(m.Histogram.GetSampleCount())),
+				MetricNameSuffix: "_count",
+				MType:            datapoint.Counter,
+				Value:            datapoint.NewIntValue(int64(m.Histogram.GetSampleCount())),
 			},
 		}
 		for _, b := range m.Histogram.Bucket {
-			ret = append(ret, metricConversion{
-				mtype:            datapoint.Counter,
-				metricNameSuffix: "_bucket",
-				value:            datapoint.NewIntValue(int64(b.GetCumulativeCount())),
-				extraDims: map[string]string{
+			ret = append(ret, MetricConversion{
+				MType:            datapoint.Counter,
+				MetricNameSuffix: "_bucket",
+				Value:            datapoint.NewIntValue(int64(b.GetCumulativeCount())),
+				ExtraDims: map[string]string{
 					"le": fmt.Sprintf("%.2f", b.GetUpperBound()),
 				},
 			})
@@ -184,21 +187,22 @@ func convertMeric(m *dto.Metric) []metricConversion {
 		return ret
 	}
 	if m.Untyped != nil {
-		return []metricConversion{
+		return []MetricConversion{
 			{
-				mtype: datapoint.Gauge,
-				value: datapoint.NewFloatValue(m.Untyped.GetValue()),
+				MType: datapoint.Gauge,
+				Value: datapoint.NewFloatValue(m.Untyped.GetValue()),
 			},
 		}
 	}
-	return []metricConversion{}
+	return []MetricConversion{}
 }
 
-type metricConversion struct {
-	mtype            datapoint.MetricType
-	value            datapoint.Value
-	metricNameSuffix string
-	extraDims        map[string]string
+//MetricConversion intermediate struct
+type MetricConversion struct {
+	MType            datapoint.MetricType
+	Value            datapoint.Value
+	MetricNameSuffix string
+	ExtraDims        map[string]string
 }
 
 func parseAsProto(body []byte) ([]*dto.MetricFamily, error) {

@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 	//"reflect"
+	"regexp"
 	"sort"
-	"strconv"
+	//"strconv"
 	"strings"
 	"time"
 
@@ -27,9 +28,12 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/goinggo/workpool"
 
+	//"github.com/fatih/structs"
 	"github.com/google/cadvisor/client"
 	info "github.com/google/cadvisor/info/v1"
-	//kube "github.com/kubernetes/kubernetes/pkg/client/unversioned"
+	"github.com/google/cadvisor/metrics"
+	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 )
 
 // Config for prometheusScraper
@@ -66,13 +70,13 @@ func (scrapWork *scrapWork) DoWork(workRoutine int) {
 }
 
 type scrapWork2 struct {
-	ctx           context.Context
-	serverURL     string
-	containerName string
-	lastTimestamp time.Time
-	clusterName   string
-	stop          chan error
-	forwarder     *signalfx.Forwarder
+	ctx         context.Context
+	serverURL   string
+	clusterName string
+	stop        chan error
+	forwarder   *signalfx.Forwarder
+	collector   *metrics.PrometheusCollector
+	chRecvOnly  chan prometheus.Metric
 }
 
 var scrapWorkCache []scrapWork2
@@ -91,31 +95,77 @@ func (sd sortableDatapoint) Less(i, j int) bool {
 	return sd[i].Timestamp.Unix() < sd[j].Timestamp.Unix()
 }
 
+type cadvisorInfoProvider struct {
+	cc *client.Client
+}
+
+func (cip *cadvisorInfoProvider) SubcontainersInfo(containerName string, query *info.ContainerInfoRequest) ([]*info.ContainerInfo, error) {
+	infos, err := cip.cc.AllDockerContainers(query)
+	if err != nil {
+		return nil, err
+	}
+	infosPtr := make([]*info.ContainerInfo, 0, len(infos))
+	for _, val := range infos {
+		infosPtr = append(infosPtr, &val)
+	}
+
+	return infosPtr, err
+}
+
+func (cip *cadvisorInfoProvider) GetVersionInfo() (*info.VersionInfo, error) {
+	//TODO: remove fake info
+	return &info.VersionInfo{
+		KernelVersion:      "4.1.6-200.fc22.x86_64",
+		ContainerOsVersion: "Fedora 22 (Twenty Two)",
+		DockerVersion:      "1.8.1",
+		CadvisorVersion:    "0.16.0",
+		CadvisorRevision:   "abcdef",
+	}, nil
+}
+
+func (cip *cadvisorInfoProvider) GetMachineInfo() (*info.MachineInfo, error) {
+	fmt.Printf("GetMachineInfo\n")
+	return cip.cc.MachineInfo()
+}
+
+//Consume metrics from channel and forward them to SignalFx
+func (scrapWork *scrapWork2) ForwardMetrics() {
+	const maxDatapoints = 100
+	ret := make([]*datapoint.Datapoint, 0, maxDatapoints)
+	for m := range scrapWork.chRecvOnly {
+		pMetric := dto.Metric{}
+		m.Write(&pMetric)
+		tsMs := pMetric.GetTimestampMs()
+		dims := make(map[string]string, len(pMetric.GetLabel()))
+		for _, l := range pMetric.GetLabel() {
+			key := l.GetName()
+			value := l.GetValue()
+			if key != "" && value != "" {
+				dims[key] = value
+			}
+		}
+
+		//TODO: Remove this agly thing
+		metricName := nameRegexp.FindStringSubmatch(m.Desc().String())[1]
+		timestamp := time.Unix(0, tsMs*time.Millisecond.Nanoseconds())
+
+		for _, conv := range scrapper.ConvertMeric(&pMetric) {
+			dp := datapoint.New(metricName+conv.MetricNameSuffix, scrapper.AppendDims(dims, conv.ExtraDims), conv.Value, conv.MType, timestamp)
+			//dpJSON, _ := json.MarshalIndent(dp, "", "  ")
+			//fmt.Printf("%v\n", string(dpJSON))
+			ret = append(ret, dp)
+			if len(ret) == maxDatapoints {
+				sort.Sort(sortableDatapoint(ret))
+
+				scrapWork.forwarder.AddDatapoints(scrapWork.ctx, ret)
+				ret = make([]*datapoint.Datapoint, 0, maxDatapoints)
+			}
+		}
+	}
+}
+
 func (scrapWork *scrapWork2) DoWork(workRoutine int) {
-	cadvisorClient, err := client.NewClient(scrapWork.serverURL)
-	if err != nil {
-		fmt.Printf("Failed connect to server: %v\n", err)
-		return
-	}
-
-	containerInfoRequest := info.ContainerInfoRequest{
-		NumStats: 60,
-		Start:    scrapWork.lastTimestamp,
-	}
-	contInfo, err := cadvisorClient.ContainerInfo(scrapWork.containerName, &containerInfoRequest)
-	if err != nil {
-		fmt.Printf("Failed get docker containers: %v\n", err)
-		return
-	}
-
-	sfxDatapoints := make([]*datapoint.Datapoint, 0, 100)
-	sfxDatapointsPtr := &sfxDatapoints
-
-	scrapWork.lastTimestamp = addMetric(contInfo, sfxDatapointsPtr, scrapWork.clusterName).Add(time.Duration(1) * time.Millisecond)
-	fmt.Printf("%v%v\nDatapoints: %v\n", scrapWork.serverURL, scrapWork.containerName, len(*sfxDatapointsPtr))
-
-	sort.Sort(sortableDatapoint(*sfxDatapointsPtr))
-	scrapWork.forwarder.AddDatapoints(scrapWork.ctx, *sfxDatapointsPtr)
+	scrapWork.collector.Collect(scrapWork.chRecvOnly)
 }
 
 const ingestURL = "ingestURL"
@@ -223,6 +273,10 @@ func main() {
 		}
 	}
 
+	nameRegexp = regexp.MustCompile(`fqName: "([a-zA-Z-_]*)`)
+	re = regexp.MustCompile(`^k8s_(?P<kubernetes_container_name>[^_\.]+)[^_]+_(?P<kubernetes_pod_name>[^_]+)_(?P<kubernetes_namespace>[^_]+)`)
+	reCaptureNames = re.SubexpNames()
+
 	app.Run(os.Args)
 }
 
@@ -237,6 +291,21 @@ func newSfxClient(ingestURL, authToken string) (forwarder *signalfx.Forwarder) {
 	forwarder = signalfx.NewSignalfxJSONForwarder(strings.Join([]string{ingestURL, "v2/datapoint"}, "/"), time.Second*10, authToken, 10, "", "", "") //http://lab-ingest.corp.signalfuse.com:8080
 	forwarder.UserAgent(fmt.Sprintf("SignalFxScrapper/1.0 (gover %s)", runtime.Version()))
 	return
+}
+
+var re *regexp.Regexp
+var reCaptureNames []string
+var nameRegexp *regexp.Regexp
+
+func nameToLabel(name string) map[string]string {
+	extraLabels := map[string]string{}
+	matches := re.FindStringSubmatch(name)
+	for i, match := range matches {
+		if len(reCaptureNames[i]) > 0 {
+			extraLabels[re.SubexpNames()[i]] = match
+		}
+	}
+	return extraLabels
 }
 
 func (p *prometheusScraper) main(paramDataSendRate time.Duration) (err error) {
@@ -258,37 +327,29 @@ func (p *prometheusScraper) main(paramDataSendRate time.Duration) (err error) {
 	stop := make(chan error, 1)
 
 	// Build list of work
-	idx := 0
 	for _, serverURL := range p.cfg.CadvisorURL {
 		cadvisorClient, localERR := client.NewClient(serverURL)
 		if localERR != nil {
 			fmt.Printf("Failed connect to server: %v\n", localERR)
 			continue
 		}
-		containerInfoRequest := info.DefaultContainerInfoRequest()
-		containersInfo, localERR := cadvisorClient.AllDockerContainers(&containerInfoRequest)
-		if localERR != nil {
-			fmt.Printf("Failed get docker containers: %v\n", localERR)
-			continue
+
+		work := scrapWork2{
+			ctx:         ctx,
+			serverURL:   serverURL,
+			clusterName: p.cfg.ClusterName,
+			stop:        stop,
+			forwarder:   p.forwarder,
+			collector: metrics.NewPrometheusCollector(&cadvisorInfoProvider{
+				cc: cadvisorClient,
+			}, nameToLabel),
+			chRecvOnly: make(chan prometheus.Metric),
 		}
-		for _, contInfo := range containersInfo {
-			_, localERR := cadvisorClient.ContainerInfo(contInfo.Name, &containerInfoRequest)
-			if localERR != nil {
-				fmt.Printf("Error: %v\n", localERR)
-				continue
-			}
-			fmt.Printf("Added container to monitor: %v\n", contInfo.Name)
-			scrapWorkCache = append(scrapWorkCache, scrapWork2{
-				ctx:           ctx,
-				serverURL:     serverURL,
-				containerName: contInfo.Name,
-				lastTimestamp: time.Unix(0, 0),
-				clusterName:   p.cfg.ClusterName,
-				stop:          stop,
-				forwarder:     p.forwarder,
-			})
-			idx = idx + 1
-		}
+		scrapWorkCache = append(scrapWorkCache, work)
+
+		go func() {
+			work.ForwardMetrics()
+		}()
 	}
 
 	fmt.Printf("Work size: %v\n", len(scrapWorkCache))
@@ -313,188 +374,4 @@ func (p *prometheusScraper) main(paramDataSendRate time.Duration) (err error) {
 	ticker.Stop()
 
 	return err
-}
-
-func addMetric(ci *info.ContainerInfo, dst *[]*datapoint.Datapoint, clusterName string) (maxTimestamp time.Time) {
-	dimsMap := make(map[string]string)
-	dimsMap["name"] = ci.Name //Spec.Labels["io.kubernetes.pod.name"]
-	dimsMap["namespace"] = ci.Namespace
-	dimsMap["clusterName"] = clusterName
-
-	for labelName, label := range ci.Spec.Labels {
-		dimsMap[labelName] = label
-	}
-
-	maxTimestamp = time.Unix(0, 0)
-	for _, cs := range ci.Stats {
-		tt := cs.Timestamp
-
-		if maxTimestamp.Unix() < tt.Unix() {
-			maxTimestamp = tt
-		}
-
-		//Cpu
-		addDp(dst, createGauge("Cpu_Usage_Total", dimsMap, datapoint.NewIntValue(int64(cs.Cpu.Usage.Total)), tt))
-		fmt.Printf("Cpu_Usage_Total: %v tt: %v\n", cs.Cpu.Usage.Total, tt)
-		addDp(dst, createGauge("Cpu_Usage_User", dimsMap, datapoint.NewIntValue(int64(cs.Cpu.Usage.User)), tt))
-		addDp(dst, createGauge("Cpu_Usage_System", dimsMap, datapoint.NewIntValue(int64(cs.Cpu.Usage.System)), tt))
-		addDp(dst, createGauge("Cpu_LoadAverage", dimsMap, datapoint.NewIntValue(int64(cs.Cpu.LoadAverage)), tt))
-		for i, v := range cs.Cpu.Usage.PerCpu {
-			newDims := make(map[string]string, len(dimsMap)+1)
-			for k, v := range dimsMap {
-				newDims[k] = v
-			}
-			newDims["cpu_id"] = strconv.Itoa(i)
-			addDp(dst, createGauge("Cpu_Usage_PerCpu", newDims, datapoint.NewIntValue(int64(v)), tt))
-		}
-
-		//Memory
-		addDp(dst, createGauge("Memory_Usage", dimsMap, datapoint.NewIntValue(int64(cs.Memory.Usage)), tt))
-		addDp(dst, createGauge("Memory_WorkingSet", dimsMap, datapoint.NewIntValue(int64(cs.Memory.WorkingSet)), tt))
-		addDp(dst, createGauge("Memory_Failcnt", dimsMap, datapoint.NewIntValue(int64(cs.Memory.Failcnt)), tt))
-		addDp(dst, createGauge("Memory_ContainerData_Pgfault", dimsMap, datapoint.NewIntValue(int64(cs.Memory.ContainerData.Pgfault)), tt))
-		addDp(dst, createGauge("Memory_ContainerData_Pgmajfault", dimsMap, datapoint.NewIntValue(int64(cs.Memory.ContainerData.Pgmajfault)), tt))
-		addDp(dst, createGauge("Memory_HierarchicalData_Pgfault", dimsMap, datapoint.NewIntValue(int64(cs.Memory.HierarchicalData.Pgfault)), tt))
-		addDp(dst, createGauge("Memory_HierarchicalData_Pgmajfault", dimsMap, datapoint.NewIntValue(int64(cs.Memory.HierarchicalData.Pgmajfault)), tt))
-
-		//Task load stats
-		addDp(dst, createCount("TaskStats_NrStopped", dimsMap, datapoint.NewIntValue(int64(cs.TaskStats.NrStopped)), tt))
-		addDp(dst, createCount("TaskStats_NrUninterruptible", dimsMap, datapoint.NewIntValue(int64(cs.TaskStats.NrUninterruptible)), tt))
-		addDp(dst, createCount("TaskStats_NrIoWait", dimsMap, datapoint.NewIntValue(int64(cs.TaskStats.NrIoWait)), tt))
-		addDp(dst, createCount("TaskStats_NrSleeping", dimsMap, datapoint.NewIntValue(int64(cs.TaskStats.NrSleeping)), tt))
-		addDp(dst, createCount("TaskStats_NrRunning", dimsMap, datapoint.NewIntValue(int64(cs.TaskStats.NrRunning)), tt))
-
-		//Network
-		newDims := make(map[string]string, len(dimsMap)+1)
-		for k, v := range dimsMap {
-			newDims[k] = v
-		}
-		newDims["interface"] = cs.Network.InterfaceStats.Name
-		addDp(dst, createGauge("Network_InterfaceStats_RxBytes", newDims, datapoint.NewIntValue(int64(cs.Network.InterfaceStats.RxBytes)), tt))
-		addDp(dst, createGauge("Network_InterfaceStats_RxPackets", newDims, datapoint.NewIntValue(int64(cs.Network.InterfaceStats.RxPackets)), tt))
-		addDp(dst, createGauge("Network_InterfaceStats_RxErrors", newDims, datapoint.NewIntValue(int64(cs.Network.InterfaceStats.RxErrors)), tt))
-		addDp(dst, createGauge("Network_InterfaceStats_RxDropped", newDims, datapoint.NewIntValue(int64(cs.Network.InterfaceStats.RxDropped)), tt))
-		addDp(dst, createGauge("Network_InterfaceStats_TxBytes", newDims, datapoint.NewIntValue(int64(cs.Network.InterfaceStats.TxBytes)), tt))
-		addDp(dst, createGauge("Network_InterfaceStats_TxPackets", newDims, datapoint.NewIntValue(int64(cs.Network.InterfaceStats.TxPackets)), tt))
-		addDp(dst, createGauge("Network_InterfaceStats_TxErrors", newDims, datapoint.NewIntValue(int64(cs.Network.InterfaceStats.TxErrors)), tt))
-		addDp(dst, createGauge("Network_InterfaceStats_TxDropped", newDims, datapoint.NewIntValue(int64(cs.Network.InterfaceStats.TxDropped)), tt))
-
-		//Tcp
-		makeTCPStatDatapoints(&cs.Network.Tcp, dst, newDims, tt)
-
-		//Tcp6
-		makeTCPStatDatapoints(&cs.Network.Tcp6, dst, newDims, tt)
-
-		if cs.Network.Interfaces != nil {
-			for _, val := range cs.Network.Interfaces {
-				newDims = make(map[string]string, len(dimsMap)+1)
-				for k, v := range dimsMap {
-					newDims[k] = v
-				}
-				newDims["interface"] = val.Name
-				makeInterfaceStatDatapoints(&val, dst, newDims, tt)
-			}
-		}
-
-		//Filesystem
-		for _, fsStat := range cs.Filesystem {
-			newDims := make(map[string]string, len(dimsMap)+1)
-			for k, v := range dimsMap {
-				newDims[k] = v
-			}
-			newDims["device"] = fsStat.Device
-
-			addDp(dst, createGauge("Filesystem_Limit", newDims, datapoint.NewIntValue(int64(fsStat.Limit)), tt))
-			addDp(dst, createGauge("Filesystem_Usage", newDims, datapoint.NewIntValue(int64(fsStat.Usage)), tt))
-			addDp(dst, createGauge("Filesystem_Available", newDims, datapoint.NewIntValue(int64(fsStat.Available)), tt))
-			addDp(dst, createCount("Filesystem_ReadsCompleted", newDims, datapoint.NewIntValue(int64(fsStat.ReadsCompleted)), tt))
-			addDp(dst, createCount("Filesystem_ReadsMerged", newDims, datapoint.NewIntValue(int64(fsStat.ReadsMerged)), tt))
-			addDp(dst, createCount("Filesystem_SectorsRead", newDims, datapoint.NewIntValue(int64(fsStat.SectorsRead)), tt))
-			addDp(dst, createCount("Filesystem_ReadTime", newDims, datapoint.NewIntValue(int64(fsStat.ReadTime)), tt))
-			addDp(dst, createCount("Filesystem_WritesCompleted", newDims, datapoint.NewIntValue(int64(fsStat.WritesCompleted)), tt))
-			addDp(dst, createCount("Filesystem_WritesMerged", newDims, datapoint.NewIntValue(int64(fsStat.WritesMerged)), tt))
-			addDp(dst, createCount("Filesystem_SectorsWritten", newDims, datapoint.NewIntValue(int64(fsStat.SectorsWritten)), tt))
-			addDp(dst, createCount("Filesystem_WriteTime", newDims, datapoint.NewIntValue(int64(fsStat.WriteTime)), tt))
-			addDp(dst, createGauge("Filesystem_IoInProgress", newDims, datapoint.NewIntValue(int64(fsStat.IoInProgress)), tt))
-			addDp(dst, createGauge("Filesystem_IoTime", newDims, datapoint.NewIntValue(int64(fsStat.IoTime)), tt))
-			addDp(dst, createGauge("Filesystem_WeightedIoTime", newDims, datapoint.NewIntValue(int64(fsStat.WeightedIoTime)), tt))
-		}
-
-		//CustomMetrics
-		/*if customMetricSpec != nil {
-			for name, cm := range cs.CustomMetrics {
-				//TODO: Maybe lookup should be done by cm.Label
-				if metricSpec, ok := customMetricSpec[name]; ok {
-					var value datapoint.Value
-					if metricSpec.Format == info.IntType {
-						value = datapoint.NewIntValue(int64(cm.IntValue))
-					} else {
-						value = datapoint.NewFloatValue(int64(cm.FloatValue))
-					}
-					metricName := fmt.Sprintf("CustomMetrics_%v", cm.Label)
-
-					switch metricSpec.Type {
-					case info.MetricGauge:
-						addDp(dst, createGauge(metricName, dimsMap, value, cm.Timestamp))
-					case info.MetricCumulative:
-						addDp(dst, createCount(metricName, dimsMap, value, cm.Timestamp))
-					case info.MetricDelta:
-						addDp(dst, createRate(metricName, dimsMap, value, cm.Timestamp))
-					}
-				}
-			}
-		}*/
-
-	}
-
-	return maxTimestamp
-}
-
-func makeInterfaceStatDatapoints(stat *info.InterfaceStats, dst *[]*datapoint.Datapoint, dimsMap map[string]string, tt time.Time) {
-	addDp(dst, createGauge("Network_InterfaceStats_RxBytes", dimsMap, datapoint.NewIntValue(int64(stat.RxBytes)), tt))
-	addDp(dst, createGauge("Network_InterfaceStats_RxPackets", dimsMap, datapoint.NewIntValue(int64(stat.RxPackets)), tt))
-	addDp(dst, createGauge("Network_InterfaceStats_RxErrors", dimsMap, datapoint.NewIntValue(int64(stat.RxErrors)), tt))
-	addDp(dst, createGauge("Network_InterfaceStats_RxDropped", dimsMap, datapoint.NewIntValue(int64(stat.RxDropped)), tt))
-	addDp(dst, createGauge("Network_InterfaceStats_TxBytes", dimsMap, datapoint.NewIntValue(int64(stat.TxBytes)), tt))
-	addDp(dst, createGauge("Network_InterfaceStats_TxPackets", dimsMap, datapoint.NewIntValue(int64(stat.TxPackets)), tt))
-	addDp(dst, createGauge("Network_InterfaceStats_TxErrors", dimsMap, datapoint.NewIntValue(int64(stat.TxErrors)), tt))
-	addDp(dst, createGauge("Network_InterfaceStats_TxDropped", dimsMap, datapoint.NewIntValue(int64(stat.TxDropped)), tt))
-}
-
-func makeTCPStatDatapoints(stat *info.TcpStat, dst *[]*datapoint.Datapoint, dimsMap map[string]string, tt time.Time) {
-	addDp(dst, createCount("Network_Tcp_FinWait2", dimsMap, datapoint.NewIntValue(int64(stat.FinWait2)), tt))
-	addDp(dst, createCount("Network_Tcp_TimeWait", dimsMap, datapoint.NewIntValue(int64(stat.TimeWait)), tt))
-	addDp(dst, createCount("Network_Tcp_Established", dimsMap, datapoint.NewIntValue(int64(stat.Established)), tt))
-	addDp(dst, createCount("Network_Tcp_SynSent", dimsMap, datapoint.NewIntValue(int64(stat.SynSent)), tt))
-	addDp(dst, createCount("Network_Tcp_Close", dimsMap, datapoint.NewIntValue(int64(stat.Close)), tt))
-	addDp(dst, createCount("Network_Tcp_CloseWait", dimsMap, datapoint.NewIntValue(int64(stat.CloseWait)), tt))
-	addDp(dst, createCount("Network_Tcp_LastAck", dimsMap, datapoint.NewIntValue(int64(stat.LastAck)), tt))
-	addDp(dst, createCount("Network_Tcp_Listen", dimsMap, datapoint.NewIntValue(int64(stat.Listen)), tt))
-	addDp(dst, createCount("Network_Tcp_Closing", dimsMap, datapoint.NewIntValue(int64(stat.Closing)), tt))
-	addDp(dst, createCount("Network_Tcp_SynRecv", dimsMap, datapoint.NewIntValue(int64(stat.SynRecv)), tt))
-	addDp(dst, createCount("Network_Tcp_FinWait1", dimsMap, datapoint.NewIntValue(int64(stat.FinWait1)), tt))
-}
-
-func addDp(dst *[]*datapoint.Datapoint, dp *datapoint.Datapoint) {
-	*dst = append(*dst, dp)
-}
-
-func createGauge(metric string, dimensions map[string]string, value datapoint.Value, timestamp time.Time) *datapoint.Datapoint {
-	return datapoint.New(metric, dimensions, value, datapoint.Gauge, timestamp)
-}
-
-/*func createCounter(metric string, dimensions map[string]string, value datapoint.Value, timestamp time.Time) *datapoint.Datapoint {
-	return datapoint.New(metric, dimensions, value, datapoint.Counter, timestamp)
-}*/
-
-/*func createRate(metric string, dimensions map[string]string, value datapoint.Value, timestamp time.Time) *datapoint.Datapoint {
-	return datapoint.New(metric, dimensions, value, datapoint.Rate, timestamp)
-}*/
-
-/*func createEnum(metric string, dimensions map[string]string, value datapoint.Value, timestamp time.Time) *datapoint.Datapoint {
-	return datapoint.New(metric, dimensions, value, datapoint.Enum, timestamp)
-}*/
-
-func createCount(metric string, dimensions map[string]string, value datapoint.Value, timestamp time.Time) *datapoint.Datapoint {
-	return datapoint.New(metric, dimensions, value, datapoint.Count, timestamp)
 }
