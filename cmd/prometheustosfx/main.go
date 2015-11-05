@@ -212,9 +212,10 @@ func main() {
 			EnvVar: "SFX_SCRAPPER_CLUSTER_NAME",
 		},
 		cli.StringFlag{
-			Name:  dataSendRate,
-			Value: "1s",
-			Usage: fmt.Sprintf("Rate at which data is queried from cAdvisor and send to SignalFx. Possible values: %v", getMapKeys(dataSendRates)),
+			Name:   dataSendRate,
+			Value:  "1s",
+			EnvVar: "SFX_SCRAPPER_SEND_RATE",
+			Usage:  fmt.Sprintf("Rate at which data is queried from cAdvisor and send to SignalFx. Possible values: %v", getMapKeys(dataSendRates)),
 		},
 	}
 
