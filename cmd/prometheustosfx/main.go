@@ -124,7 +124,6 @@ func (cip *cadvisorInfoProvider) GetVersionInfo() (*info.VersionInfo, error) {
 }
 
 func (cip *cadvisorInfoProvider) GetMachineInfo() (*info.MachineInfo, error) {
-	fmt.Printf("GetMachineInfo\n")
 	return cip.cc.MachineInfo()
 }
 
@@ -144,9 +143,9 @@ func (scrapWork *scrapWork2) ForwardMetrics() {
 				dims[key] = value
 			}
 		}
+		dims["cluster_name"] = scrapWork.clusterName
 
-		//TODO: Remove this agly thing
-		metricName := nameRegexp.FindStringSubmatch(m.Desc().String())[1]
+		metricName := m.Desc().MetricName()
 		timestamp := time.Unix(0, tsMs*time.Millisecond.Nanoseconds())
 
 		for _, conv := range scrapper.ConvertMeric(&pMetric) {
@@ -273,7 +272,6 @@ func main() {
 		}
 	}
 
-	nameRegexp = regexp.MustCompile(`fqName: "([a-zA-Z-_]*)`)
 	re = regexp.MustCompile(`^k8s_(?P<kubernetes_container_name>[^_\.]+)[^_]+_(?P<kubernetes_pod_name>[^_]+)_(?P<kubernetes_namespace>[^_]+)`)
 	reCaptureNames = re.SubexpNames()
 
@@ -295,7 +293,6 @@ func newSfxClient(ingestURL, authToken string) (forwarder *signalfx.Forwarder) {
 
 var re *regexp.Regexp
 var reCaptureNames []string
-var nameRegexp *regexp.Regexp
 
 func nameToLabel(name string) map[string]string {
 	extraLabels := map[string]string{}
@@ -362,8 +359,8 @@ func (p *prometheusScraper) main(paramDataSendRate time.Duration) (err error) {
 
 	ticker := time.NewTicker(paramDataSendRate)
 	go func() {
-		for t := range ticker.C {
-			fmt.Printf("--------[ %v ]---------\n", t)
+		for range ticker.C {
+			//fmt.Printf("--------[ %v ]---------\n", t)
 			for idx := range scrapWorkCache {
 				workPool.PostWork("", &scrapWorkCache[idx])
 			}

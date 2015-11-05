@@ -178,6 +178,12 @@ func NewInvalidDesc(err error) *Desc {
 	}
 }
 
+// MetricName custom function to get metric name.
+// Please include it when upgrading to new version of this file
+func (d *Desc) MetricName() string {
+	return d.fqName
+}
+
 func (d *Desc) String() string {
 	lpStrings := make([]string, 0, len(d.constLabelPairs))
 	for _, lp := range d.constLabelPairs {
