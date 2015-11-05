@@ -99,17 +99,8 @@ type cadvisorInfoProvider struct {
 	cc *client.Client
 }
 
-func (cip *cadvisorInfoProvider) SubcontainersInfo(containerName string, query *info.ContainerInfoRequest) ([]*info.ContainerInfo, error) {
-	infos, err := cip.cc.AllDockerContainers(query)
-	if err != nil {
-		return nil, err
-	}
-	infosPtr := make([]*info.ContainerInfo, 0, len(infos))
-	for _, val := range infos {
-		infosPtr = append(infosPtr, &val)
-	}
-
-	return infosPtr, err
+func (cip *cadvisorInfoProvider) SubcontainersInfo(containerName string, query *info.ContainerInfoRequest) ([]info.ContainerInfo, error) {
+	return cip.cc.AllDockerContainers(query) //&info.ContainerInfoRequest{NumStats: 10, Start: time.Unix(0, time.Now().UnixNano()-10*time.Second.Nanoseconds())})
 }
 
 func (cip *cadvisorInfoProvider) GetVersionInfo() (*info.VersionInfo, error) {
@@ -128,7 +119,16 @@ func (cip *cadvisorInfoProvider) GetMachineInfo() (*info.MachineInfo, error) {
 }
 
 //Consume metrics from channel and forward them to SignalFx
-func (scrapWork *scrapWork2) ForwardMetrics() {
+func (scrapWork *scrapWork2) SafeForwardMetrics() {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered in f", r)
+		}
+	}()
+	scrapWork.forwardMetrics()
+}
+
+func (scrapWork *scrapWork2) forwardMetrics() {
 	const maxDatapoints = 100
 	ret := make([]*datapoint.Datapoint, 0, maxDatapoints)
 	for m := range scrapWork.chRecvOnly {
@@ -144,6 +144,7 @@ func (scrapWork *scrapWork2) ForwardMetrics() {
 			}
 		}
 		dims["cluster_name"] = scrapWork.clusterName
+		//dims["node_url"] = scrapWork.serverURL
 
 		metricName := m.Desc().MetricName()
 		timestamp := time.Unix(0, tsMs*time.Millisecond.Nanoseconds())
@@ -346,7 +347,9 @@ func (p *prometheusScraper) main(paramDataSendRate time.Duration) (err error) {
 		scrapWorkCache = append(scrapWorkCache, work)
 
 		go func() {
-			work.ForwardMetrics()
+			for {
+				work.SafeForwardMetrics()
+			}
 		}()
 	}
 

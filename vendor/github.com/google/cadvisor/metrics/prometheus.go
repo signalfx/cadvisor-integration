@@ -26,7 +26,7 @@ import (
 // This will usually be manager.Manager, but can be swapped out for testing.
 type infoProvider interface {
 	// Get information about all subcontainers of the specified container (includes self).
-	SubcontainersInfo(containerName string, query *info.ContainerInfoRequest) ([]*info.ContainerInfo, error)
+	SubcontainersInfo(containerName string, query *info.ContainerInfoRequest) ([]info.ContainerInfo, error)
 	// Get information about the version.
 	GetVersionInfo() (*info.VersionInfo, error)
 	// Get information about the machine.
