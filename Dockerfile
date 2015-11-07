@@ -5,5 +5,5 @@ RUN mkdir -p /go/src/github.com/signalfx/prometheustosignalfx
 
 ADD . /go/src/github.com/signalfx/prometheustosignalfx
 
-RUN go install github.com/signalfx/prometheustosignalfx/cmd/prometheustosfx
+RUN go install -ldflags "-X main.toolVersion=`cd /go/src/github.com/signalfx/prometheustosignalfx;git log --oneline -n 1 | awk '{print $1}'`" github.com/signalfx/prometheustosignalfx/cmd/prometheustosfx
 CMD /go/bin/prometheustosfx

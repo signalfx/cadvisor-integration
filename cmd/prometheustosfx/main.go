@@ -36,6 +36,9 @@ import (
 	dto "github.com/prometheus/client_model/go"
 )
 
+// Set by build system
+var toolVersion = "NOT SET"
+
 // Config for prometheusScraper
 type Config struct {
 	IngestURL    string
@@ -184,14 +187,20 @@ var dataSendRates = map[string]time.Duration{
 	"1h":  time.Hour,
 }
 
+func printVersion() {
+	fmt.Printf("git build commit: %v\n", toolVersion)
+}
+
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	app := cli.NewApp()
 	app.Name = "prometheustosfx"
 	app.Usage = "scraps metrics from cAdvisor and forwards them to SignalFx."
+	app.Version = "git commit: " + toolVersion
 
 	app.Flags = []cli.Flag{
+
 		cli.StringFlag{
 			Name:  ingestURL,
 			Value: "https://ingest.signalfx.com",
@@ -318,6 +327,7 @@ func (p *prometheusScraper) main(paramDataSendRate time.Duration) (err error) {
 		}
 	}
 
+	printVersion()
 	cfg, _ := json.MarshalIndent(p.cfg, "", "  ")
 	fmt.Printf("Scrapper started with following params:\n%v\n", string(cfg))
 
