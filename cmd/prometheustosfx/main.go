@@ -4,10 +4,11 @@ import (
 	//"bytes"
 	"fmt"
 	"os"
-	//"reflect"
+	"reflect"
 	"regexp"
 	"sort"
 	//"strconv"
+	"errors"
 	"strings"
 	"time"
 
@@ -73,16 +74,10 @@ func (scrapWork *scrapWork) DoWork(workRoutine int) {
 }
 
 type scrapWork2 struct {
-	ctx         context.Context
-	serverURL   string
-	clusterName string
-	stop        chan error
-	forwarder   *signalfx.Forwarder
-	collector   *metrics.PrometheusCollector
-	chRecvOnly  chan prometheus.Metric
+	stop       chan error
+	collector  *metrics.PrometheusCollector
+	chRecvOnly chan prometheus.Metric
 }
-
-var scrapWorkCache []scrapWork2
 
 type sortableDatapoint []*datapoint.Datapoint
 
@@ -103,7 +98,7 @@ type cadvisorInfoProvider struct {
 }
 
 func (cip *cadvisorInfoProvider) SubcontainersInfo(containerName string, query *info.ContainerInfoRequest) ([]info.ContainerInfo, error) {
-	return cip.cc.AllDockerContainers(query) //&info.ContainerInfoRequest{NumStats: 10, Start: time.Unix(0, time.Now().UnixNano()-10*time.Second.Nanoseconds())})
+	return cip.cc.AllDockerContainers(&info.ContainerInfoRequest{NumStats: 3}) //&info.ContainerInfoRequest{NumStats: 10, Start: time.Unix(0, time.Now().UnixNano()-10*time.Second.Nanoseconds())})
 }
 
 func (cip *cadvisorInfoProvider) GetVersionInfo() (*info.VersionInfo, error) {
@@ -121,51 +116,7 @@ func (cip *cadvisorInfoProvider) GetMachineInfo() (*info.MachineInfo, error) {
 	return cip.cc.MachineInfo()
 }
 
-//Consume metrics from channel and forward them to SignalFx
-func (scrapWork *scrapWork2) SafeForwardMetrics() {
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("Recovered in f", r)
-		}
-	}()
-	scrapWork.forwardMetrics()
-}
-
-func (scrapWork *scrapWork2) forwardMetrics() {
-	const maxDatapoints = 100
-	ret := make([]*datapoint.Datapoint, 0, maxDatapoints)
-	for m := range scrapWork.chRecvOnly {
-		pMetric := dto.Metric{}
-		m.Write(&pMetric)
-		tsMs := pMetric.GetTimestampMs()
-		dims := make(map[string]string, len(pMetric.GetLabel()))
-		for _, l := range pMetric.GetLabel() {
-			key := l.GetName()
-			value := l.GetValue()
-			if key != "" && value != "" {
-				dims[key] = value
-			}
-		}
-		dims["cluster_name"] = scrapWork.clusterName
-		//dims["node_url"] = scrapWork.serverURL
-
-		metricName := m.Desc().MetricName()
-		timestamp := time.Unix(0, tsMs*time.Millisecond.Nanoseconds())
-
-		for _, conv := range scrapper.ConvertMeric(&pMetric) {
-			dp := datapoint.New(metricName+conv.MetricNameSuffix, scrapper.AppendDims(dims, conv.ExtraDims), conv.Value, conv.MType, timestamp)
-			//dpJSON, _ := json.MarshalIndent(dp, "", "  ")
-			//fmt.Printf("%v\n", string(dpJSON))
-			ret = append(ret, dp)
-			if len(ret) == maxDatapoints {
-				sort.Sort(sortableDatapoint(ret))
-
-				scrapWork.forwarder.AddDatapoints(scrapWork.ctx, ret)
-				ret = make([]*datapoint.Datapoint, 0, maxDatapoints)
-			}
-		}
-	}
-}
+const maxDatapoints = 50
 
 func (scrapWork *scrapWork2) DoWork(workRoutine int) {
 	scrapWork.collector.Collect(scrapWork.chRecvOnly)
@@ -192,8 +143,6 @@ func printVersion() {
 }
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
 	app := cli.NewApp()
 	app.Name = "prometheustosfx"
 	app.Usage = "scraps metrics from cAdvisor and forwards them to SignalFx."
@@ -331,37 +280,74 @@ func (p *prometheusScraper) main(paramDataSendRate time.Duration) (err error) {
 	cfg, _ := json.MarshalIndent(p.cfg, "", "  ")
 	fmt.Printf("Scrapper started with following params:\n%v\n", string(cfg))
 
-	scrapWorkCache = make([]scrapWork2, 0, int32(len(p.cfg.CadvisorURL)+1))
-
+	scrapWorkCache := make([]*scrapWork2, len(p.cfg.CadvisorURL))
+	cases := make([]reflect.SelectCase, cap(scrapWorkCache))
 	stop := make(chan error, 1)
 
 	// Build list of work
-	for _, serverURL := range p.cfg.CadvisorURL {
+	for i, serverURL := range p.cfg.CadvisorURL {
 		cadvisorClient, localERR := client.NewClient(serverURL)
 		if localERR != nil {
 			fmt.Printf("Failed connect to server: %v\n", localERR)
 			continue
 		}
 
-		work := scrapWork2{
-			ctx:         ctx,
-			serverURL:   serverURL,
-			clusterName: p.cfg.ClusterName,
-			stop:        stop,
-			forwarder:   p.forwarder,
+		scrapWorkCache[i] = &scrapWork2{
+			stop: stop,
 			collector: metrics.NewPrometheusCollector(&cadvisorInfoProvider{
 				cc: cadvisorClient,
 			}, nameToLabel),
 			chRecvOnly: make(chan prometheus.Metric),
 		}
-		scrapWorkCache = append(scrapWorkCache, work)
 
-		go func() {
-			for {
-				work.SafeForwardMetrics()
-			}
-		}()
+		cases[i] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(scrapWorkCache[i].chRecvOnly)}
 	}
+
+	go func() {
+		remaining := len(cases)
+		i := 0
+		ret := make([]*datapoint.Datapoint, maxDatapoints)
+		for remaining > 0 {
+			chosen, value, ok := reflect.Select(cases)
+			if !ok {
+				// The chosen channel has been closed, so zero out the channel to disable the case
+				cases[chosen].Chan = reflect.ValueOf(nil)
+				scrapWorkCache[chosen] = nil
+				remaining--
+				continue
+			}
+
+			prometheusMetric := value.Interface().(prometheus.Metric)
+			pMetric := dto.Metric{}
+			prometheusMetric.Write(&pMetric)
+			tsMs := pMetric.GetTimestampMs()
+			dims := make(map[string]string, len(pMetric.GetLabel()))
+			for _, l := range pMetric.GetLabel() {
+				key := l.GetName()
+				value := l.GetValue()
+				if key != "" && value != "" {
+					dims[key] = value
+				}
+			}
+			dims["cluster_name"] = p.cfg.ClusterName
+			//dims["node_url"] = scrapWork.serverURL
+
+			metricName := prometheusMetric.Desc().MetricName()
+			timestamp := time.Unix(0, tsMs*time.Millisecond.Nanoseconds())
+
+			for _, conv := range scrapper.ConvertMeric(&pMetric) {
+				dp := datapoint.New(metricName+conv.MetricNameSuffix, scrapper.AppendDims(dims, conv.ExtraDims), conv.Value, conv.MType, timestamp)
+				ret[i] = dp
+				i++
+				if i == maxDatapoints {
+					sort.Sort(sortableDatapoint(ret))
+					p.forwarder.AddDatapoints(ctx, ret)
+					i = 0
+				}
+			}
+		}
+		stop <- errors.New("All channels were closed.")
+	}()
 
 	fmt.Printf("Work size: %v\n", len(scrapWorkCache))
 	if len(scrapWorkCache) == 0 {
@@ -376,7 +362,9 @@ func (p *prometheusScraper) main(paramDataSendRate time.Duration) (err error) {
 		for range ticker.C {
 			//fmt.Printf("--------[ %v ]---------\n", t)
 			for idx := range scrapWorkCache {
-				workPool.PostWork("", &scrapWorkCache[idx])
+				if scrapWorkCache[idx] != nil {
+					workPool.PostWork("", scrapWorkCache[idx])
+				}
 			}
 		}
 	}()
