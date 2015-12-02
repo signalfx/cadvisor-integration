@@ -28,6 +28,10 @@ import (
 
 	"github.com/codegangsta/cli"
 	"github.com/goinggo/workpool"
+	kubeAPI "k8s.io/kubernetes/pkg/api"
+	kube "k8s.io/kubernetes/pkg/client/unversioned"
+	kubeFields "k8s.io/kubernetes/pkg/fields"
+	kubeLabels "k8s.io/kubernetes/pkg/labels"
 
 	//"github.com/fatih/structs"
 	"github.com/google/cadvisor/client"
@@ -74,6 +78,7 @@ func (scrapWork *scrapWork) DoWork(workRoutine int) {
 }
 
 type scrapWork2 struct {
+	serverURL  string
 	stop       chan error
 	collector  *metrics.PrometheusCollector
 	chRecvOnly chan prometheus.Metric
@@ -266,6 +271,80 @@ func nameToLabel(name string) map[string]string {
 }
 
 func (p *prometheusScraper) main(paramDataSendRate time.Duration) (err error) {
+	podToServiceMap := make(map[string]string, 2)
+	hostIPtoNameMap := make(map[string]string, 2)
+	kubeClient, kubeErr := kube.NewInCluster()
+	if kubeErr != nil {
+		fmt.Printf("kubeErr: %v\n", kubeErr)
+	} else {
+		fmt.Printf("kubeClient created.\n")
+		nodeList, apiErr := kubeClient.Nodes().List(kubeLabels.Everything(), kubeFields.Everything())
+		if apiErr != nil {
+			fmt.Printf("apiErr: %v\n", apiErr)
+		} else {
+			fmt.Printf("nodeList received.\n")
+			nodeIPs := make([]string, 0, 2)
+			for _, node := range nodeList.Items {
+				var hostIP string
+				for _, nodeAddress := range node.Status.Addresses {
+					switch nodeAddress.Type {
+					case kubeAPI.NodeInternalIP:
+						hostIP = nodeAddress.Address
+						break
+					case kubeAPI.NodeLegacyHostIP:
+						hostIP = nodeAddress.Address
+					}
+				}
+				if hostIP != "" {
+					hostIP = "http://" + hostIP + ":4194"
+					nodeIPs = append(nodeIPs, hostIP)
+					hostIPtoNameMap[hostIP] = node.ObjectMeta.Name
+				}
+
+				//nodeObj, _ := json.MarshalIndent(node, "", "  ")
+				//fmt.Printf("%v\n", string(nodeObj))
+			}
+			p.cfg.CadvisorURL = nodeIPs
+		}
+
+		serviceList, apiErr := kubeClient.Services("").List(kubeLabels.Everything(), kubeFields.Everything())
+		if apiErr != nil {
+			fmt.Printf("apiErr: %v\n", apiErr)
+		} else {
+			fmt.Printf("serviceList received.\n")
+			for _, service := range serviceList.Items {
+				podList, apiErr := kubeClient.Pods("").List(kubeLabels.SelectorFromSet(service.Spec.Selector), kubeFields.Everything())
+				if apiErr != nil {
+					fmt.Printf("apiErr: %v\n", apiErr)
+				} else {
+					fmt.Printf("podList received.\n")
+					for _, pod := range podList.Items {
+						fmt.Printf("%v -> %v\n", pod.ObjectMeta.Name, service.ObjectMeta.Name)
+						podToServiceMap[pod.ObjectMeta.Name] = service.ObjectMeta.Name
+					}
+				}
+				buf, _ := json.MarshalIndent(service, "", "  ")
+				fmt.Printf("%v\n", string(buf))
+			}
+		}
+		/*podList, apiErr := kubeClient.Pods("").List(kubeLabels.Everything(), kubeFields.Everything())
+		if apiErr != nil {
+			fmt.Printf("apiErr: %v\n", apiErr)
+		} else {
+			fmt.Printf("podList received.\n")
+			for _, pod := range podList.Items {
+				podBuf, _ := json.MarshalIndent(pod, "", "  ")
+				fmt.Printf("%v\n", string(podBuf))
+			}
+		}*/
+
+		/*body, apiErr := kubeClient.Get().AbsPath("/api/v1/proxy/namespaces/kube-system/services/heapster/api/v1/model/stats").Do().Raw()
+		if apiErr != nil {
+			fmt.Printf("apiErr: %v\n", apiErr)
+		} else {
+			fmt.Printf("body: %v\n", string(body))
+		}*/
+	}
 
 	ctx := context.Background()
 	cadvisorServers := make([]*url.URL, len(p.cfg.CadvisorURL))
@@ -293,7 +372,8 @@ func (p *prometheusScraper) main(paramDataSendRate time.Duration) (err error) {
 		}
 
 		scrapWorkCache[i] = &scrapWork2{
-			stop: stop,
+			serverURL: serverURL,
+			stop:      stop,
 			collector: metrics.NewPrometheusCollector(&cadvisorInfoProvider{
 				cc: cadvisorClient,
 			}, nameToLabel),
@@ -303,6 +383,7 @@ func (p *prometheusScraper) main(paramDataSendRate time.Duration) (err error) {
 		cases[i] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(scrapWorkCache[i].chRecvOnly)}
 	}
 
+	// Wait on channel input and forward datapoints to SignalFx
 	go func() {
 		remaining := len(cases)
 		i := 0
@@ -329,8 +410,20 @@ func (p *prometheusScraper) main(paramDataSendRate time.Duration) (err error) {
 					dims[key] = value
 				}
 			}
-			dims["cluster_name"] = p.cfg.ClusterName
-			//dims["node_url"] = scrapWork.serverURL
+			dims["cluster"] = p.cfg.ClusterName
+
+			nodeName, ok := hostIPtoNameMap[scrapWorkCache[chosen].serverURL]
+			if ok {
+				dims["node"] = nodeName
+			}
+
+			podName, ok := dims["kubernetes_pod_name"]
+			if ok {
+					serviceName, ok := podToServiceMap[podName]
+					if ok {
+						dims["service"] = serviceName
+					}
+			}
 
 			metricName := prometheusMetric.Desc().MetricName()
 			timestamp := time.Unix(0, tsMs*time.Millisecond.Nanoseconds())
