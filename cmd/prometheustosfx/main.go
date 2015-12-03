@@ -129,7 +129,6 @@ func (scrapWork *scrapWork2) DoWork(workRoutine int) {
 
 const ingestURL = "ingestURL"
 const apiToken = "apiToken"
-const cadvisorURL = "cadvisorURL"
 const dataSendRate = "sendRate"
 const clusterName = "clusterName"
 
@@ -165,11 +164,6 @@ func main() {
 			Usage:  "API token.",
 			EnvVar: "SFX_SCRAPPER_API_TOKEN",
 		},
-		cli.StringSliceFlag{
-			Name:   cadvisorURL,
-			Usage:  "cAdvisor URLs. Env. Var. example: SFX_SCRAPPER_CADVISOR_URL=<addr#1>,<arrd#2>,...",
-			EnvVar: "SFX_SCRAPPER_CADVISOR_URL",
-		},
 		cli.StringFlag{
 			Name:   clusterName,
 			Usage:  "Cluster name will appear as dimension.",
@@ -199,13 +193,6 @@ func main() {
 			os.Exit(1)
 		}
 
-		var paramCadvisorURL = c.StringSlice(cadvisorURL)
-		if paramCadvisorURL == nil || len(paramCadvisorURL) == 0 {
-			fmt.Fprintf(os.Stderr, "\nERROR: cadvisorURL must be set.\n\n")
-			cli.ShowAppHelp(c)
-			os.Exit(1)
-		}
-
 		var paramClusterName = c.String(clusterName)
 		if paramClusterName == "" {
 			fmt.Fprintf(os.Stderr, "\nERROR: clusterName must be set.\n\n")
@@ -224,7 +211,6 @@ func main() {
 			forwarder: newSfxClient(paramIngestURL, paramAPIToken), //"PjzqXDrnlfCn2h1ClAvVig"
 			cfg: &Config{
 				IngestURL:    paramIngestURL,
-				CadvisorURL:  paramCadvisorURL,
 				APIToken:     paramAPIToken,
 				DataSendRate: c.String(dataSendRate),
 				ClusterName:  paramClusterName,
@@ -270,8 +256,80 @@ func nameToLabel(name string) map[string]string {
 	return extraLabels
 }
 
+func updateNodes() (hostIPtoNameMap map[string]string, nodeIPs []string) {
+	kubeClient, kubeErr := kube.NewInCluster()
+	if kubeErr != nil {
+		fmt.Printf("kubeErr: %v\n", kubeErr)
+		return nil, nil
+	}
+
+	fmt.Printf("kubeClient created.\n")
+	hostIPtoNameMap = make(map[string]string, 2)
+	nodeIPs = make([]string, 0, 2)
+	nodeList, apiErr := kubeClient.Nodes().List(kubeLabels.Everything(), kubeFields.Everything())
+	if apiErr != nil {
+		fmt.Printf("apiErr: %v\n", apiErr)
+	} else {
+		fmt.Printf("nodeList received.\n")
+		for _, node := range nodeList.Items {
+			var hostIP string
+			for _, nodeAddress := range node.Status.Addresses {
+				switch nodeAddress.Type {
+				case kubeAPI.NodeInternalIP:
+					hostIP = nodeAddress.Address
+					break
+				case kubeAPI.NodeLegacyHostIP:
+					hostIP = nodeAddress.Address
+				}
+			}
+			if hostIP != "" {
+				hostIP = "http://" + hostIP + ":4194"
+				nodeIPs = append(nodeIPs, hostIP)
+				hostIPtoNameMap[hostIP] = node.ObjectMeta.Name
+			}
+		}
+	}
+
+	return hostIPtoNameMap, nodeIPs
+}
+
+func updateServices() (podToServiceMap map[string]string) {
+	kubeClient, kubeErr := kube.NewInCluster()
+	if kubeErr != nil {
+		fmt.Printf("kubeErr: %v\n", kubeErr)
+		return nil
+	} else {
+		serviceList, apiErr := kubeClient.Services("").List(kubeLabels.Everything(), kubeFields.Everything())
+		if apiErr != nil {
+			fmt.Printf("apiErr: %v\n", apiErr)
+			return nil
+		}
+
+		fmt.Printf("serviceList received.\n")
+		podToServiceMap = make(map[string]string, 2)
+		for _, service := range serviceList.Items {
+			podList, apiErr := kubeClient.Pods("").List(kubeLabels.SelectorFromSet(service.Spec.Selector), kubeFields.Everything())
+			if apiErr != nil {
+				fmt.Printf("apiErr: %v\n", apiErr)
+			} else {
+				fmt.Printf("podList received.\n")
+				for _, pod := range podList.Items {
+					//fmt.Printf("%v -> %v\n", pod.ObjectMeta.Name, service.ObjectMeta.Name)
+					podToServiceMap[pod.ObjectMeta.Name] = service.ObjectMeta.Name
+				}
+			}
+			//buf, _ := json.MarshalIndent(service, "", "  ")
+			//fmt.Printf("%v\n", string(buf))
+		}
+		return podToServiceMap
+	}
+}
+
 func (p *prometheusScraper) main(paramDataSendRate time.Duration) (err error) {
-	podToServiceMap := make(map[string]string, 2)
+	podToServiceMap := updateServices()
+	hostIPtoNameMap, nodeIPs := updateNodes()
+	p.cfg.CadvisorURL = nodeIPs
+	/*podToServiceMap := make(map[string]string, 2)
 	hostIPtoNameMap := make(map[string]string, 2)
 	kubeClient, kubeErr := kube.NewInCluster()
 	if kubeErr != nil {
@@ -327,6 +385,8 @@ func (p *prometheusScraper) main(paramDataSendRate time.Duration) (err error) {
 				fmt.Printf("%v\n", string(buf))
 			}
 		}
+
+	}*/
 		/*podList, apiErr := kubeClient.Pods("").List(kubeLabels.Everything(), kubeFields.Everything())
 		if apiErr != nil {
 			fmt.Printf("apiErr: %v\n", apiErr)
@@ -344,7 +404,6 @@ func (p *prometheusScraper) main(paramDataSendRate time.Duration) (err error) {
 		} else {
 			fmt.Printf("body: %v\n", string(body))
 		}*/
-	}
 
 	ctx := context.Background()
 	cadvisorServers := make([]*url.URL, len(p.cfg.CadvisorURL))
