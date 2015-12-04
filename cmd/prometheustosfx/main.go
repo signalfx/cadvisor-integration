@@ -47,11 +47,12 @@ var toolVersion = "NOT SET"
 
 // Config for prometheusScraper
 type Config struct {
-	IngestURL    string
-	CadvisorURL  []string
-	APIToken     string
-	DataSendRate string
-	ClusterName  string
+	IngestURL              string
+	CadvisorURL            []string
+	APIToken               string
+	DataSendRate           string
+	ClusterName            string
+	NodeServiceRefreshRate string
 }
 
 type prometheusScraper struct {
@@ -233,10 +234,11 @@ func main() {
 		var instance = prometheusScraper{
 			forwarder: newSfxClient(paramIngestURL, paramAPIToken), //"PjzqXDrnlfCn2h1ClAvVig"
 			cfg: &Config{
-				IngestURL:    paramIngestURL,
-				APIToken:     paramAPIToken,
-				DataSendRate: c.String(dataSendRate),
-				ClusterName:  paramClusterName,
+				IngestURL:              paramIngestURL,
+				APIToken:               paramAPIToken,
+				DataSendRate:           c.String(dataSendRate),
+				ClusterName:            paramClusterName,
+				NodeServiceRefreshRate: c.String(nodeServiceDiscoveryRate),
 			},
 		}
 
@@ -279,7 +281,7 @@ func nameToLabel(name string) map[string]string {
 	return extraLabels
 }
 
-func updateNodes() (hostIPtoNameMap map[string]string, nodeIPs []string) {
+func updateNodes() (hostIPtoNodeMap map[string]kubeAPI.Node, nodeIPs []string) {
 	fmt.Printf("Updating Nodes\n")
 	kubeClient, kubeErr := kube.NewInCluster()
 	if kubeErr != nil {
@@ -288,7 +290,7 @@ func updateNodes() (hostIPtoNameMap map[string]string, nodeIPs []string) {
 	}
 
 	fmt.Printf("kubeClient created.\n")
-	hostIPtoNameMap = make(map[string]string, 2)
+	hostIPtoNodeMap = make(map[string]kubeAPI.Node, 2)
 	nodeIPs = make([]string, 0, 2)
 	nodeList, apiErr := kubeClient.Nodes().List(kubeLabels.Everything(), kubeFields.Everything())
 	if apiErr != nil {
@@ -309,12 +311,12 @@ func updateNodes() (hostIPtoNameMap map[string]string, nodeIPs []string) {
 			if hostIP != "" {
 				hostIP = "http://" + hostIP + ":4194"
 				nodeIPs = append(nodeIPs, hostIP)
-				hostIPtoNameMap[hostIP] = node.ObjectMeta.Name
+				hostIPtoNodeMap[hostIP] = node
 			}
 		}
 	}
 
-	return hostIPtoNameMap, nodeIPs
+	return hostIPtoNodeMap, nodeIPs
 }
 
 func updateServices() (podToServiceMap map[string]string) {
@@ -414,7 +416,7 @@ func (p *prometheusScraper) main(paramDataSendRate, paramNodeServiceDiscoveryRat
 			podMap := updateServices()
 			hostMap, _ := updateNodes()
 
-			hostMapCopy := make(map[string]string)
+			hostMapCopy := make(map[string]kubeAPI.Node)
 			for k, v := range hostMap {
 				hostMapCopy[k] = v
 			}
@@ -465,7 +467,7 @@ type scrapWorkCache struct {
 	workCache       []*scrapWork2
 	cases           []reflect.SelectCase
 	podToServiceMap map[string]string
-	hostIPtoNameMap map[string]string
+	hostIPtoNameMap map[string]kubeAPI.Node
 	forwarder       *signalfx.Forwarder
 	cfg             *Config
 	mutex           *sync.Mutex
@@ -495,7 +497,7 @@ func (swc *scrapWorkCache) setPodToServiceMap(m map[string]string) {
 	swc.mutex.Unlock()
 }
 
-func (swc *scrapWorkCache) setHostIPtoNameMap(m map[string]string) {
+func (swc *scrapWorkCache) setHostIPtoNameMap(m map[string]kubeAPI.Node) {
 	swc.mutex.Lock()
 	swc.hostIPtoNameMap = m
 	swc.mutex.Unlock()
@@ -554,10 +556,15 @@ func (swc *scrapWorkCache) waitAndForward() {
 		dims["cluster"] = swc.cfg.ClusterName
 
 		swc.mutex.Lock()
-		nodeName, ok := swc.hostIPtoNameMap[swc.workCache[chosen].serverURL]
+		node, ok := swc.hostIPtoNameMap[swc.workCache[chosen].serverURL]
 		swc.mutex.Unlock()
 		if ok {
-			dims["node"] = nodeName
+			dims["node"] = node.ObjectMeta.Name
+			dims["node_container_runtime_version"] = node.Status.NodeInfo.ContainerRuntimeVersion
+			dims["node_kernel_version"] = node.Status.NodeInfo.KernelVersion
+			dims["node_kubelet_version"] = node.Status.NodeInfo.KubeletVersion
+			dims["node_os_image"] = node.Status.NodeInfo.OsImage
+			dims["node_kubeproxy_version"] = node.Status.NodeInfo.KubeProxyVersion
 		}
 
 		podName, ok := dims["kubernetes_pod_name"]
