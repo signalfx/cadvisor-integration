@@ -53,6 +53,7 @@ type Config struct {
 	DataSendRate           string
 	ClusterName            string
 	NodeServiceRefreshRate string
+	CadvisorPort           int
 }
 
 type prometheusScraper struct {
@@ -134,6 +135,7 @@ const apiToken = "apiToken"
 const dataSendRate = "sendRate"
 const nodeServiceDiscoveryRate = "nodeServiceDiscoveryRate"
 const clusterName = "clusterName"
+const cadvisorPort = "cadvisorPort"
 
 var dataSendRates = map[string]time.Duration{
 	"1s":  time.Second,
@@ -186,6 +188,12 @@ func main() {
 			EnvVar: "SFX_SCRAPPER_SEND_RATE",
 			Usage:  fmt.Sprintf("Rate at which data is queried from cAdvisor and send to SignalFx. Possible values: %v", getMapKeys(dataSendRates)),
 		},
+		cli.IntFlag{
+			Name:   cadvisorPort,
+			Value:  4194,
+			EnvVar: "SFX_SCRAPPER_CADVISOR_PORT",
+			Usage:  fmt.Sprintf("Port on which cAdvisor listens."),
+		},
 		cli.StringFlag{
 			Name:   nodeServiceDiscoveryRate,
 			Value:  "5m",
@@ -196,7 +204,7 @@ func main() {
 
 	app.Action = func(c *cli.Context) {
 
-		var paramAPIToken = c.String(apiToken)
+		paramAPIToken := c.String(apiToken)
 		if paramAPIToken == "" {
 			fmt.Fprintf(os.Stderr, "\nERROR: apiToken must be set.\n\n")
 			cli.ShowAppHelp(c)
@@ -217,14 +225,14 @@ func main() {
 			os.Exit(1)
 		}
 
-		var paramClusterName = c.String(clusterName)
+		paramClusterName := c.String(clusterName)
 		if paramClusterName == "" {
 			fmt.Fprintf(os.Stderr, "\nERROR: clusterName must be set.\n\n")
 			cli.ShowAppHelp(c)
 			os.Exit(1)
 		}
 
-		var paramIngestURL = c.String(ingestURL)
+		paramIngestURL := c.String(ingestURL)
 		if paramIngestURL == "" {
 			fmt.Fprintf(os.Stderr, "\nERROR: ingestUrl must be set.\n\n")
 			cli.ShowAppHelp(c)
@@ -239,6 +247,7 @@ func main() {
 				DataSendRate:           c.String(dataSendRate),
 				ClusterName:            paramClusterName,
 				NodeServiceRefreshRate: c.String(nodeServiceDiscoveryRate),
+				CadvisorPort:           c.Int(cadvisorPort),
 			},
 		}
 
@@ -281,7 +290,7 @@ func nameToLabel(name string) map[string]string {
 	return extraLabels
 }
 
-func updateNodes() (hostIPtoNodeMap map[string]kubeAPI.Node, nodeIPs []string) {
+func updateNodes(cPort int) (hostIPtoNodeMap map[string]kubeAPI.Node, nodeIPs []string) {
 	fmt.Printf("Updating Nodes\n")
 	kubeClient, kubeErr := kube.NewInCluster()
 	if kubeErr != nil {
@@ -309,7 +318,7 @@ func updateNodes() (hostIPtoNodeMap map[string]kubeAPI.Node, nodeIPs []string) {
 				}
 			}
 			if hostIP != "" {
-				hostIP = "http://" + hostIP + ":4194"
+				hostIP = fmt.Sprintf("http://%v:%v", hostIP, cPort)
 				nodeIPs = append(nodeIPs, hostIP)
 				hostIPtoNodeMap[hostIP] = node
 			}
@@ -352,7 +361,7 @@ func updateServices() (podToServiceMap map[string]string) {
 
 func (p *prometheusScraper) main(paramDataSendRate, paramNodeServiceDiscoveryRate time.Duration) (err error) {
 	podToServiceMap := updateServices()
-	hostIPtoNameMap, nodeIPs := updateNodes()
+	hostIPtoNameMap, nodeIPs := updateNodes(p.cfg.CadvisorPort)
 	p.cfg.CadvisorURL = nodeIPs
 
 	cadvisorServers := make([]*url.URL, len(p.cfg.CadvisorURL))
@@ -414,7 +423,7 @@ func (p *prometheusScraper) main(paramDataSendRate, paramNodeServiceDiscoveryRat
 		for range updateNodeAndPodTimer.C {
 
 			podMap := updateServices()
-			hostMap, _ := updateNodes()
+			hostMap, _ := updateNodes(p.cfg.CadvisorPort)
 
 			hostMapCopy := make(map[string]kubeAPI.Node)
 			for k, v := range hostMap {
