@@ -1,3 +1,5 @@
 *.iml
 /prometheustosignalfx
 /cmd/prometheustosfx/prometheustosfx
+tags
+prometheustosfx

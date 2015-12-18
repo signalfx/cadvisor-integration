@@ -3,69 +3,48 @@
 	"ignore": "test",
 	"package": [
 		{
-			"path": "github.com/Sirupsen/logrus",
-			"revision": "62f85a2e398fb4cae34ecd1db528422ede248d3c",
-			"revisionTime": "2015-10-22T17:52:25-04:00"
+			"path": "github.com/davecgh/go-spew/spew",
+			"revision": ""
 		},
 		{
-			"path": "github.com/beorn7/perks/quantile",
-			"revision": "b965b613227fddccbfffe13eae360ed3fa822f8d",
-			"revisionTime": "2015-02-23T14:51:52+01:00"
+			"path": "github.com/docker/docker/pkg/mount",
+			"revision": ""
 		},
 		{
-			"path": "github.com/cep21/gohelpers/stringhelper",
-			"revision": "dc600e06e5851ba613dba1949f9ae1b7641cb80c",
-			"revisionTime": "2015-08-10T10:18:22-07:00"
+			"path": "github.com/docker/docker/pkg/units",
+			"revision": ""
 		},
 		{
-			"path": "github.com/cep21/gohelpers/structdefaults",
-			"revision": "dc600e06e5851ba613dba1949f9ae1b7641cb80c",
-			"revisionTime": "2015-08-10T10:18:22-07:00"
+			"path": "github.com/docker/libcontainer/cgroups",
+			"revision": ""
 		},
 		{
-			"path": "github.com/cep21/gohelpers/workarounds",
-			"revision": "dc600e06e5851ba613dba1949f9ae1b7641cb80c",
-			"revisionTime": "2015-08-10T10:18:22-07:00"
+			"path": "github.com/docker/libcontainer/cgroups/fs",
+			"revision": ""
 		},
 		{
-			"path": "github.com/cep21/xdgbasedir",
-			"revision": "b123604ccc445c5759d1bc3b425defff797c3d8c",
-			"revisionTime": "2015-05-08T23:14:33-07:00"
+			"path": "github.com/docker/libcontainer/configs",
+			"revision": ""
 		},
 		{
-			"path": "github.com/codegangsta/cli",
-			"revision": "f445c894402839580d30de47551cedc152dad814",
-			"revisionTime": "2015-10-21T22:00:38-07:00"
+			"path": "github.com/docker/libcontainer/system",
+			"revision": ""
 		},
 		{
-			"path": "github.com/gogo/protobuf/proto",
-			"revision": "04145330265d088c218da8916c50eab3814c76a0",
-			"revisionTime": "2015-10-20T13:32:22+02:00"
+			"path": "github.com/emicklei/go-restful",
+			"revision": ""
 		},
 		{
-			"path": "github.com/goinggo/workpool",
-			"revision": "10f0359c48874f2bec5028f036e85ce0cccfe665",
-			"revisionTime": "2014-07-17T14:36:48-04:00"
+			"path": "github.com/emicklei/go-restful/log",
+			"revision": ""
 		},
 		{
-			"path": "github.com/golang/glog",
-			"revision": "fca8c8854093a154ff1eb580aae10276ad6b1b5f",
-			"revisionTime": "2015-08-01T08:52:21+10:00"
+			"path": "github.com/emicklei/go-restful/swagger",
+			"revision": ""
 		},
 		{
-			"path": "github.com/golang/protobuf/proto",
-			"revision": "5baca1b63153b1a82014546382edbdd302b138b6",
-			"revisionTime": "2015-10-23T13:49:00+11:00"
-		},
-		{
-			"path": "github.com/google/cadvisor/client",
-			"revision": "aa6f80814bc6fdb43a0ed12719658225420ffb7d",
-			"revisionTime": "2015-10-23T13:22:17+01:00"
-		},
-		{
-			"path": "github.com/google/cadvisor/info/v1",
-			"revision": "aa6f80814bc6fdb43a0ed12719658225420ffb7d",
-			"revisionTime": "2015-10-23T13:22:17+01:00"
+			"path": "github.com/ghodss/yaml",
+			"revision": ""
 		},
 		{
 			"path": "github.com/google/cadvisor/info/v2",
@@ -73,154 +52,241 @@
 			"revisionTime": "2015-10-23T13:22:17+01:00"
 		},
 		{
-			"path": "github.com/google/cadvisor/metrics",
-			"revision": "aa6f80814bc6fdb43a0ed12719658225420ffb7d",
-			"revisionTime": "2015-10-23T13:22:17+01:00"
+			"path": "github.com/google/gofuzz",
+			"revision": ""
 		},
 		{
-			"path": "github.com/gorilla/context",
-			"revision": "1c83b3eabd45b6d76072b66b746c20815fb2872d",
-			"revisionTime": "2015-08-19T22:12:45-07:00"
+			"path": "github.com/juju/ratelimit",
+			"revision": ""
 		},
 		{
-			"path": "github.com/gorilla/mux",
-			"revision": "ad4d7a5882b961e07e2626045eb995c022ac6664",
-			"revisionTime": "2015-10-03T15:26:51+08:00"
+			"path": "github.com/pborman/uuid",
+			"revision": ""
 		},
 		{
-			"path": "github.com/jtolds/gls",
-			"revision": "9a4a02dbe491bef4bab3c24fd9f3087d6c4c6690",
-			"revisionTime": "2015-04-01T00:43:43-06:00"
+			"path": "github.com/spf13/pflag",
+			"revision": ""
 		},
 		{
-			"path": "github.com/matttproud/golang_protobuf_extensions/pbutil",
-			"revision": "d0c3fe89de86839aecf2e0579c40ba3bb336a453",
-			"revisionTime": "2015-10-11T12:25:29+02:00"
+			"path": "github.com/ugorji/go/codec",
+			"revision": ""
 		},
 		{
-			"path": "github.com/prometheus/client_golang/prometheus",
-			"revision": "449ccefff16c8e2b7229f6be1921ba22f62461fe",
-			"revisionTime": "2015-10-26T02:27:06+01:00"
+			"path": "golang.org/x/crypto/ssh",
+			"revision": ""
 		},
 		{
-			"path": "github.com/prometheus/client_model/go",
-			"revision": "fa8ad6fec33561be4280a8f0514318c79d7f6cb6",
-			"revisionTime": "2015-02-12T10:17:44Z"
+			"path": "gopkg.in/yaml.v2",
+			"revision": ""
 		},
 		{
-			"path": "github.com/prometheus/common/expfmt",
-			"revision": "4fdc91a58c9d3696b982e8a680f4997403132d44",
-			"revisionTime": "2015-10-26T12:04:34+01:00"
+			"path": "k8s.io/kubernetes/pkg/api/errors",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
 		},
 		{
-			"path": "github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg",
-			"revision": "4fdc91a58c9d3696b982e8a680f4997403132d44",
-			"revisionTime": "2015-10-26T12:04:34+01:00"
+			"path": "k8s.io/kubernetes/pkg/api/install",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
 		},
 		{
-			"path": "github.com/prometheus/common/model",
-			"revision": "4fdc91a58c9d3696b982e8a680f4997403132d44",
-			"revisionTime": "2015-10-26T12:04:34+01:00"
+			"path": "k8s.io/kubernetes/pkg/api/latest",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
 		},
 		{
-			"path": "github.com/prometheus/procfs",
-			"revision": "b1afdc266f54247f5dc725544f5d351a8661f502",
-			"revisionTime": "2015-10-26T02:22:47+01:00"
+			"path": "k8s.io/kubernetes/pkg/api/meta",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
 		},
 		{
-			"path": "github.com/signalfx/com_signalfx_metrics_protobuf",
-			"revision": "3f07c0108fbfbcf93508e4ab61a080953136fdf9",
-			"revisionTime": "2015-04-02T10:32:00-07:00"
+			"path": "k8s.io/kubernetes/pkg/api/registered",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
 		},
 		{
-			"path": "github.com/signalfx/golib/datapoint",
-			"revision": "e19afc4871cd9a32921a2183e30eab0b1809248a",
-			"revisionTime": "2015-10-19T11:34:32-07:00"
+			"path": "k8s.io/kubernetes/pkg/api/resource",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
 		},
 		{
-			"path": "github.com/signalfx/golib/event",
-			"revision": "e19afc4871cd9a32921a2183e30eab0b1809248a",
-			"revisionTime": "2015-10-19T11:34:32-07:00"
+			"path": "k8s.io/kubernetes/pkg/api/unversioned",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
 		},
 		{
-			"path": "github.com/signalfx/golib/timekeeper",
-			"revision": "e19afc4871cd9a32921a2183e30eab0b1809248a",
-			"revisionTime": "2015-10-19T11:34:32-07:00"
+			"path": "k8s.io/kubernetes/pkg/api/util",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
 		},
 		{
-			"path": "github.com/signalfx/golib/web",
-			"revision": "e19afc4871cd9a32921a2183e30eab0b1809248a",
-			"revisionTime": "2015-10-19T11:34:32-07:00"
+			"path": "k8s.io/kubernetes/pkg/api/v1",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
 		},
 		{
-			"path": "github.com/signalfx/metricproxy/config",
-			"revision": "ecf58055ab3f5c4dcb2edd70044c04663e8be7b0",
-			"revisionTime": "2015-10-09T11:38:59-07:00"
+			"path": "k8s.io/kubernetes/pkg/api/validation",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
 		},
 		{
-			"path": "github.com/signalfx/metricproxy/dp/dpbuffered",
-			"revision": "ecf58055ab3f5c4dcb2edd70044c04663e8be7b0",
-			"revisionTime": "2015-10-09T11:38:59-07:00"
+			"path": "k8s.io/kubernetes/pkg/apis/componentconfig",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
 		},
 		{
-			"path": "github.com/signalfx/metricproxy/dp/dplocal",
-			"revision": "ecf58055ab3f5c4dcb2edd70044c04663e8be7b0",
-			"revisionTime": "2015-10-09T11:38:59-07:00"
+			"path": "k8s.io/kubernetes/pkg/apis/componentconfig/install",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
 		},
 		{
-			"path": "github.com/signalfx/metricproxy/dp/dpsink",
-			"revision": "ecf58055ab3f5c4dcb2edd70044c04663e8be7b0",
-			"revisionTime": "2015-10-09T11:38:59-07:00"
+			"path": "k8s.io/kubernetes/pkg/apis/componentconfig/v1alpha1",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
 		},
 		{
-			"path": "github.com/signalfx/metricproxy/protocol",
-			"revision": "ecf58055ab3f5c4dcb2edd70044c04663e8be7b0",
-			"revisionTime": "2015-10-09T11:38:59-07:00"
+			"path": "k8s.io/kubernetes/pkg/apis/extensions",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
 		},
 		{
-			"path": "github.com/signalfx/metricproxy/protocol/collectd",
-			"revision": "ecf58055ab3f5c4dcb2edd70044c04663e8be7b0",
-			"revisionTime": "2015-10-09T11:38:59-07:00"
+			"path": "k8s.io/kubernetes/pkg/apis/extensions/install",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
 		},
 		{
-			"path": "github.com/signalfx/metricproxy/protocol/signalfx",
-			"revision": "ecf58055ab3f5c4dcb2edd70044c04663e8be7b0",
-			"revisionTime": "2015-10-09T11:38:59-07:00"
+			"path": "k8s.io/kubernetes/pkg/apis/extensions/v1beta1",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
 		},
 		{
-			"path": "github.com/signalfx/metricproxy/stats",
-			"revision": "ecf58055ab3f5c4dcb2edd70044c04663e8be7b0",
-			"revisionTime": "2015-10-09T11:38:59-07:00"
+			"path": "k8s.io/kubernetes/pkg/apis/metrics",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
 		},
 		{
-			"path": "github.com/smartystreets/assertions",
-			"revision": "01fedaa993c0a9f9aa55111501cd7c81a49e812e",
-			"revisionTime": "2015-10-01T20:27:20-06:00"
+			"path": "k8s.io/kubernetes/pkg/apis/metrics/install",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
 		},
 		{
-			"path": "github.com/smartystreets/assertions/internal/oglematchers",
-			"revision": "01fedaa993c0a9f9aa55111501cd7c81a49e812e",
-			"revisionTime": "2015-10-01T20:27:20-06:00"
+			"path": "k8s.io/kubernetes/pkg/apis/metrics/v1alpha1",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
 		},
 		{
-			"path": "github.com/smartystreets/goconvey/convey",
-			"revision": "530dd3d2cafa09958178e8c557bc4abeea1651a5",
-			"revisionTime": "2015-10-26T10:41:00-06:00"
+			"path": "k8s.io/kubernetes/pkg/auth/user",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
 		},
 		{
-			"path": "github.com/smartystreets/goconvey/convey/gotest",
-			"revision": "530dd3d2cafa09958178e8c557bc4abeea1651a5",
-			"revisionTime": "2015-10-26T10:41:00-06:00"
+			"path": "k8s.io/kubernetes/pkg/capabilities",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
 		},
 		{
-			"path": "github.com/smartystreets/goconvey/convey/reporting",
-			"revision": "530dd3d2cafa09958178e8c557bc4abeea1651a5",
-			"revisionTime": "2015-10-26T10:41:00-06:00"
+			"path": "k8s.io/kubernetes/pkg/client/metrics",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
 		},
 		{
-			"path": "golang.org/x/net/context",
-			"revision": "2cba614e8ff920c60240d2677bc019af32ee04e5",
-			"revisionTime": "2015-10-21T11:20:37-06:00"
+			"path": "k8s.io/kubernetes/pkg/client/transport",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
+		},
+		{
+			"path": "k8s.io/kubernetes/pkg/client/unversioned",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
+		},
+		{
+			"path": "k8s.io/kubernetes/pkg/conversion",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
+		},
+		{
+			"path": "k8s.io/kubernetes/pkg/conversion/queryparams",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
+		},
+		{
+			"path": "k8s.io/kubernetes/pkg/kubelet/qos",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
+		},
+		{
+			"path": "k8s.io/kubernetes/pkg/runtime",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
+		},
+		{
+			"path": "k8s.io/kubernetes/pkg/types",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
+		},
+		{
+			"path": "k8s.io/kubernetes/pkg/util",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
+		},
+		{
+			"path": "k8s.io/kubernetes/pkg/util/errors",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
+		},
+		{
+			"path": "k8s.io/kubernetes/pkg/util/intstr",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
+		},
+		{
+			"path": "k8s.io/kubernetes/pkg/util/rand",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
+		},
+		{
+			"path": "k8s.io/kubernetes/pkg/util/sets",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
+		},
+		{
+			"path": "k8s.io/kubernetes/pkg/util/validation",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
+		},
+		{
+			"path": "k8s.io/kubernetes/pkg/util/wait",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
+		},
+		{
+			"path": "k8s.io/kubernetes/pkg/util/yaml",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
+		},
+		{
+			"path": "k8s.io/kubernetes/pkg/version",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
+		},
+		{
+			"path": "k8s.io/kubernetes/pkg/watch",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
+		},
+		{
+			"path": "k8s.io/kubernetes/pkg/watch/json",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
+		},
+		{
+			"path": "k8s.io/kubernetes/third_party/forked/reflect",
+			"revision": "ef84c57965915fe4f41d4a9e136cd40c621c77d5",
+			"revisionTime": "2015-11-25T16:22:27+01:00"
+		},
+		{
+			"path": "speter.net/go/exp/math/dec/inf",
+			"revision": ""
 		}
 	]
 }
