@@ -1,29 +1,26 @@
 package main
 
 import (
-	//"bytes"
 	"fmt"
 	"os"
 	"reflect"
 	"regexp"
-	"sort"
-	//"strconv"
+	//"sort"
 	"errors"
 	"strings"
 	"sync"
 	"time"
 
-	//	"net/http"
 	"net/url"
 
-	//	"log"
+	"flag"
+	"github.com/golang/glog"
 
 	"encoding/json"
 	"runtime"
 
 	"golang.org/x/net/context"
 
-	"github.com/signalfx/cadvisor-integration/scrapper"
 	"github.com/signalfx/golib/datapoint"
 	"github.com/signalfx/metricproxy/protocol/signalfx"
 
@@ -34,12 +31,8 @@ import (
 	kubeFields "k8s.io/kubernetes/pkg/fields"
 	kubeLabels "k8s.io/kubernetes/pkg/labels"
 
-	//"github.com/fatih/structs"
 	"github.com/google/cadvisor/client"
 	info "github.com/google/cadvisor/info/v1"
-	"github.com/google/cadvisor/metrics"
-	"github.com/prometheus/client_golang/prometheus"
-	dto "github.com/prometheus/client_model/go"
 )
 
 // Set by build system
@@ -61,13 +54,28 @@ type prometheusScraper struct {
 	cfg       *Config
 }
 
-type scrapWork2 struct {
-	serverURL  string
-	collector  *metrics.PrometheusCollector
-	chRecvOnly chan prometheus.Metric
+// workProxy will call work.DoWork and then callback
+/*type workProxy struct {
+	work     workpool.PoolWorker
+	callback func()
 }
 
-type sortableDatapoint []*datapoint.Datapoint
+func (wp *workProxy) DoWork(workRoutine int) {
+	wp.work.DoWork(workRoutine)
+	wp.callback()
+}*/
+
+type scrapWork2 struct {
+	serverURL  string
+	collector  *CadvisorCollector
+	chRecvOnly chan datapoint.Datapoint
+}
+
+func (scrapWork *scrapWork2) DoWork(workRoutine int) {
+	scrapWork.collector.Collect(scrapWork.chRecvOnly)
+}
+
+/*type sortableDatapoint []*datapoint.Datapoint
 
 func (sd sortableDatapoint) Len() int {
 	return len(sd)
@@ -79,36 +87,35 @@ func (sd sortableDatapoint) Swap(i, j int) {
 
 func (sd sortableDatapoint) Less(i, j int) bool {
 	return sd[i].Timestamp.Unix() < sd[j].Timestamp.Unix()
-}
+}*/
 
 type cadvisorInfoProvider struct {
-	cc *client.Client
+	cc         *client.Client
+	lastUpdate time.Time
 }
 
-func (cip *cadvisorInfoProvider) SubcontainersInfo(containerName string, query *info.ContainerInfoRequest) ([]info.ContainerInfo, error) {
-	return cip.cc.AllDockerContainers(&info.ContainerInfoRequest{NumStats: 3}) //&info.ContainerInfoRequest{NumStats: 10, Start: time.Unix(0, time.Now().UnixNano()-10*time.Second.Nanoseconds())})
-}
-
-func (cip *cadvisorInfoProvider) GetVersionInfo() (*info.VersionInfo, error) {
-	//TODO: remove fake info
-	return &info.VersionInfo{
-		KernelVersion:      "4.1.6-200.fc22.x86_64",
-		ContainerOsVersion: "Fedora 22 (Twenty Two)",
-		DockerVersion:      "1.8.1",
-		CadvisorVersion:    "0.16.0",
-		CadvisorRevision:   "abcdef",
-	}, nil
+func (cip *cadvisorInfoProvider) SubcontainersInfo(containerName string) ([]info.ContainerInfo, error) {
+	curTime := time.Now()
+	info, err := cip.cc.AllDockerContainers(&info.ContainerInfoRequest{Start: cip.lastUpdate, End: curTime})
+	if len(info) > 0 {
+		cip.lastUpdate = curTime
+	}
+	return info, err
 }
 
 func (cip *cadvisorInfoProvider) GetMachineInfo() (*info.MachineInfo, error) {
 	return cip.cc.MachineInfo()
 }
 
-const maxDatapoints = 50
-
-func (scrapWork *scrapWork2) DoWork(workRoutine int) {
-	scrapWork.collector.Collect(scrapWork.chRecvOnly)
+func newCadvisorInfoProvider(cadvisorClient *client.Client) *cadvisorInfoProvider {
+	return &cadvisorInfoProvider{
+		cc:         cadvisorClient,
+		lastUpdate: time.Now(),
+	}
 }
+
+const autoFlushTimerDuration = 500 * time.Millisecond
+const maxDatapoints = 50
 
 const ingestURL = "ingestURL"
 const apiToken = "apiToken"
@@ -118,13 +125,11 @@ const clusterName = "clusterName"
 const cadvisorPort = "cadvisorPort"
 
 var dataSendRates = map[string]time.Duration{
-	"1s":  time.Second,
 	"5s":  5 * time.Second,
 	"10s": 10 * time.Second,
 	"30s": 30 * time.Second,
 	"1m":  time.Minute,
 	"5m":  5 * time.Minute,
-	"1h":  time.Hour,
 }
 
 var nodeServiceDiscoveryRates = map[string]time.Duration{
@@ -136,10 +141,11 @@ var nodeServiceDiscoveryRates = map[string]time.Duration{
 }
 
 func printVersion() {
-	fmt.Printf("git build commit: %v\n", toolVersion)
+	glog.Infof("git build commit: %v\n", toolVersion)
 }
 
 func main() {
+	flag.Parse()
 	app := cli.NewApp()
 	app.Name = "prometheustosfx"
 	app.Usage = "scraps metrics from cAdvisor and forwards them to SignalFx."
@@ -164,7 +170,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:   dataSendRate,
-			Value:  "1s",
+			Value:  "5s",
 			EnvVar: "SFX_SCRAPPER_SEND_RATE",
 			Usage:  fmt.Sprintf("Rate at which data is queried from cAdvisor and send to SignalFx. Possible values: %v", getMapKeys(dataSendRates)),
 		},
@@ -186,41 +192,41 @@ func main() {
 
 		paramAPIToken := c.String(apiToken)
 		if paramAPIToken == "" {
-			fmt.Fprintf(os.Stderr, "\nERROR: apiToken must be set.\n\n")
+			glog.Errorf("\nERROR: apiToken must be set.\n\n")
 			cli.ShowAppHelp(c)
 			os.Exit(1)
 		}
 
 		paramDataSendRate, ok := dataSendRates[c.String(dataSendRate)]
 		if !ok {
-			fmt.Fprintf(os.Stderr, "\nERROR: dataSendRate must be one of: %v.\n\n", getMapKeys(dataSendRates))
+			glog.Errorf("\nERROR: dataSendRate must be one of: %v.\n\n", getMapKeys(dataSendRates))
 			cli.ShowAppHelp(c)
 			os.Exit(1)
 		}
 
 		paramNodeServiceDiscoveryRate, ok := nodeServiceDiscoveryRates[c.String(nodeServiceDiscoveryRate)]
 		if !ok {
-			fmt.Fprintf(os.Stderr, "\nERROR: nodeServiceDiscoveryRate must be one of: %v.\n\n", getMapKeys(nodeServiceDiscoveryRates))
+			glog.Errorf("\nERROR: nodeServiceDiscoveryRate must be one of: %v.\n\n", getMapKeys(nodeServiceDiscoveryRates))
 			cli.ShowAppHelp(c)
 			os.Exit(1)
 		}
 
 		paramClusterName := c.String(clusterName)
 		if paramClusterName == "" {
-			fmt.Fprintf(os.Stderr, "\nERROR: clusterName must be set.\n\n")
+			glog.Errorf("\nERROR: clusterName must be set.\n\n")
 			cli.ShowAppHelp(c)
 			os.Exit(1)
 		}
 
 		paramIngestURL := c.String(ingestURL)
 		if paramIngestURL == "" {
-			fmt.Fprintf(os.Stderr, "\nERROR: ingestUrl must be set.\n\n")
+			glog.Errorf("\nERROR: ingestUrl must be set.\n\n")
 			cli.ShowAppHelp(c)
 			os.Exit(1)
 		}
 
 		var instance = prometheusScraper{
-			forwarder: newSfxClient(paramIngestURL, paramAPIToken), //"PjzqXDrnlfCn2h1ClAvVig"
+			forwarder: newSfxClient(paramIngestURL, paramAPIToken),
 			cfg: &Config{
 				IngestURL:              paramIngestURL,
 				APIToken:               paramAPIToken,
@@ -232,7 +238,7 @@ func main() {
 		}
 
 		if err := instance.main(paramDataSendRate, paramNodeServiceDiscoveryRate); err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+			glog.Errorf("%s\n", err.Error())
 			os.Exit(1)
 		}
 	}
@@ -273,7 +279,7 @@ func nameToLabel(name string) map[string]string {
 func updateNodes(cPort int) (hostIPtoNodeMap map[string]kubeAPI.Node, nodeIPs []string) {
 	kubeClient, kubeErr := kube.NewInCluster()
 	if kubeErr != nil {
-		fmt.Printf("kubeErr: %v\n", kubeErr)
+		glog.Errorf("Failed to create kubernetes client. Error: %v\n", kubeErr)
 		return nil, nil
 	}
 
@@ -281,7 +287,7 @@ func updateNodes(cPort int) (hostIPtoNodeMap map[string]kubeAPI.Node, nodeIPs []
 	nodeIPs = make([]string, 0, 2)
 	nodeList, apiErr := kubeClient.Nodes().List(kubeLabels.Everything(), kubeFields.Everything())
 	if apiErr != nil {
-		fmt.Printf("apiErr: %v\n", apiErr)
+		glog.Errorf("Failed to list kubernetes nodes. Error: %v\n", apiErr)
 	} else {
 		for _, node := range nodeList.Items {
 			var hostIP string
@@ -308,13 +314,13 @@ func updateNodes(cPort int) (hostIPtoNodeMap map[string]kubeAPI.Node, nodeIPs []
 func updateServices() (podToServiceMap map[string]string) {
 	kubeClient, kubeErr := kube.NewInCluster()
 	if kubeErr != nil {
-		fmt.Printf("kubeErr: %v\n", kubeErr)
+		glog.Errorf("Failed to create kubernetes client. Error: %v\n", kubeErr)
 		return nil
 	}
 
 	serviceList, apiErr := kubeClient.Services("").List(kubeLabels.Everything(), kubeFields.Everything())
 	if apiErr != nil {
-		fmt.Printf("apiErr: %v\n", apiErr)
+		glog.Errorf("Failed to list kubernetes services. Error: %v\n", apiErr)
 		return nil
 	}
 
@@ -322,7 +328,7 @@ func updateServices() (podToServiceMap map[string]string) {
 	for _, service := range serviceList.Items {
 		podList, apiErr := kubeClient.Pods("").List(kubeLabels.SelectorFromSet(service.Spec.Selector), kubeFields.Everything())
 		if apiErr != nil {
-			fmt.Printf("apiErr: %v\n", apiErr)
+			glog.Errorf("Failed to list kubernetes pods. Error: %v\n", apiErr)
 		} else {
 			for _, pod := range podList.Items {
 				//fmt.Printf("%v -> %v\n", pod.ObjectMeta.Name, service.ObjectMeta.Name)
@@ -348,7 +354,7 @@ func (p *prometheusScraper) main(paramDataSendRate, paramNodeServiceDiscoveryRat
 
 	printVersion()
 	cfg, _ := json.MarshalIndent(p.cfg, "", "  ")
-	fmt.Printf("Scrapper started with following params:\n%v\n", string(cfg))
+	glog.Infof("Scrapper started with following params:\n%v\n", string(cfg))
 
 	scrapWorkCache := newScrapWorkCache(p.cfg, p.forwarder)
 	stop := make(chan error, 1)
@@ -366,16 +372,19 @@ func (p *prometheusScraper) main(paramDataSendRate, paramNodeServiceDiscoveryRat
 
 	workPool := workpool.New(runtime.NumCPU(), int32(len(p.cfg.CadvisorURL)+1))
 
+	// Collect data from nodes
 	scrapWorkTicker := time.NewTicker(paramDataSendRate)
 	go func() {
 		for range scrapWorkTicker.C {
+
 			scrapWorkCache.foreachWork(func(i int, w *scrapWork2) bool {
-				workPool.PostWork("", w)
+				workPool.PostWork("CollectDataWork", w)
 				return true
 			})
 		}
 	}()
 
+	// New nodes and services discovery
 	updateNodeAndPodTimer := time.NewTicker(paramNodeServiceDiscoveryRate)
 	go func() {
 		for range updateNodeAndPodTimer.C {
@@ -401,20 +410,16 @@ func (p *prometheusScraper) main(paramDataSendRate, paramNodeServiceDiscoveryRat
 				for serverURL := range hostMapCopy {
 					cadvisorClient, localERR := client.NewClient(serverURL)
 					if localERR != nil {
-						fmt.Printf("Failed connect to server: %v\n", localERR)
+						glog.Errorf("Failed connect to server: %v\n", localERR)
 						continue
 					}
 
 					scrapWorkCache.addWork(&scrapWork2{
-						serverURL: serverURL,
-						collector: metrics.NewPrometheusCollector(&cadvisorInfoProvider{
-							cc: cadvisorClient,
-						}, nameToLabel),
-						chRecvOnly: make(chan prometheus.Metric),
+						serverURL:  serverURL,
+						collector:  NewCadvisorCollector(newCadvisorInfoProvider(cadvisorClient), nameToLabel),
+						chRecvOnly: make(chan datapoint.Datapoint),
 					})
 				}
-			} else {
-				fmt.Printf("No new nodes appeared.\n")
 			}
 
 			scrapWorkCache.setPodToServiceMap(podMap)
@@ -429,9 +434,12 @@ func (p *prometheusScraper) main(paramDataSendRate, paramNodeServiceDiscoveryRat
 	return
 }
 
+type responseChannel *chan bool
+
 type scrapWorkCache struct {
 	workCache       []*scrapWork2
 	cases           []reflect.SelectCase
+	flushChan       chan responseChannel
 	podToServiceMap map[string]string
 	hostIPtoNameMap map[string]kubeAPI.Node
 	forwarder       *signalfx.Forwarder
@@ -443,6 +451,7 @@ func newScrapWorkCache(cfg *Config, forwarder *signalfx.Forwarder) *scrapWorkCac
 	return &scrapWorkCache{
 		workCache: make([]*scrapWork2, 0, 1),
 		cases:     make([]reflect.SelectCase, 0, 1),
+		flushChan: make(chan responseChannel, 1),
 		forwarder: forwarder,
 		cfg:       cfg,
 		mutex:     &sync.Mutex{},
@@ -463,16 +472,14 @@ func (swc *scrapWorkCache) buildWorkList(URLList []string) {
 	for _, serverURL := range URLList {
 		cadvisorClient, localERR := client.NewClient(serverURL)
 		if localERR != nil {
-			fmt.Printf("Failed connect to server: %v\n", localERR)
+			glog.Errorf("Failed connect to server: %v\n", localERR)
 			continue
 		}
 
 		swc.addWork(&scrapWork2{
-			serverURL: serverURL,
-			collector: metrics.NewPrometheusCollector(&cadvisorInfoProvider{
-				cc: cadvisorClient,
-			}, nameToLabel),
-			chRecvOnly: make(chan prometheus.Metric),
+			serverURL:  serverURL,
+			collector:  NewCadvisorCollector(newCadvisorInfoProvider(cadvisorClient), nameToLabel),
+			chRecvOnly: make(chan datapoint.Datapoint),
 		})
 	}
 }
@@ -493,6 +500,8 @@ func (swc *scrapWorkCache) setHostIPtoNameMap(m map[string]kubeAPI.Node) {
 
 type eachWorkFunc func(int, *scrapWork2) bool
 
+// foreachWork iterates over scrapWorkCache.workCache and calls eachWorkFunc on every element
+// foreachWork will operate on copy of scrapWorkCache.workCache
 func (swc *scrapWorkCache) foreachWork(f eachWorkFunc) {
 	swc.mutex.Lock()
 	workCacheCopy := make([]*scrapWork2, len(swc.workCache))
@@ -506,6 +515,13 @@ func (swc *scrapWorkCache) foreachWork(f eachWorkFunc) {
 	}
 }
 
+// This function will block
+func (swc *scrapWorkCache) flush() {
+	respChan := make(chan bool, 1)
+	swc.flushChan <- &respChan
+	<-respChan
+}
+
 func (swc *scrapWorkCache) fillNodeDims(chosen int, dims map[string]string) {
 
 	node, ok := func() (n kubeAPI.Node, b bool) {
@@ -513,7 +529,7 @@ func (swc *scrapWorkCache) fillNodeDims(chosen int, dims map[string]string) {
 		defer func() {
 			swc.mutex.Unlock()
 			if r := recover(); r != nil {
-				fmt.Println("Recovered in fillNodeDims: ", r)
+				glog.Warningln("Recovered in fillNodeDims: ", r)
 			}
 		}()
 
@@ -540,12 +556,53 @@ func (swc *scrapWorkCache) waitAndForward() {
 
 	ctx := context.Background()
 
+	// localMutex used to sync i access
+	localMutex := &sync.Mutex{}
 	i := 0
+
+	// ret is buffer that accumulates datapoints to be send to SignalFx
 	ret := make([]*datapoint.Datapoint, maxDatapoints)
+
+	autoFlushTimer := time.NewTimer(autoFlushTimerDuration)
+	stopFlusher := make(chan bool, 1)
+	flushFunc := func(respChan responseChannel) {
+		func() {
+			localMutex.Lock()
+			defer localMutex.Unlock()
+
+			if i > 0 {
+				swc.forwarder.AddDatapoints(ctx, ret)
+				i = 0
+			}
+		}()
+
+		if respChan != nil {
+			*respChan <- true
+		}
+	}
+
+	// This thread will flush ret buffer if requested
+	// Also it will auto flush it in 500 milliseconds
+	go func() {
+		for true {
+			select {
+			case respChan := <-swc.flushChan:
+				flushFunc(respChan)
+			case <-autoFlushTimer.C:
+				flushFunc(nil)
+				autoFlushTimer.Reset(autoFlushTimerDuration)
+			case <-stopFlusher:
+				return
+			}
+		}
+	}()
+
 	for remaining > 0 {
+		autoFlushTimer.Reset(autoFlushTimerDuration)
 		chosen, value, ok := reflect.Select(swc.cases)
+		autoFlushTimer.Stop()
 		if !ok {
-			// The chosen channel has been closed, so zero out the channel to disable the case
+			// The chosen channel has been closed, so remove the case and work
 			swc.mutex.Lock()
 			swc.cases[chosen].Chan = reflect.ValueOf(nil)
 			swc.cases = append(swc.cases[:chosen], swc.cases[chosen+1:]...)
@@ -555,18 +612,8 @@ func (swc *scrapWorkCache) waitAndForward() {
 			continue
 		}
 
-		prometheusMetric := value.Interface().(prometheus.Metric)
-		pMetric := dto.Metric{}
-		prometheusMetric.Write(&pMetric)
-		tsMs := pMetric.GetTimestampMs()
-		dims := make(map[string]string, len(pMetric.GetLabel()))
-		for _, l := range pMetric.GetLabel() {
-			key := l.GetName()
-			value := l.GetValue()
-			if key != "" && value != "" {
-				dims[key] = value
-			}
-		}
+		dp := value.Interface().(datapoint.Datapoint)
+		dims := dp.Dimensions
 		dims["cluster"] = swc.cfg.ClusterName
 
 		swc.fillNodeDims(chosen, dims)
@@ -581,18 +628,23 @@ func (swc *scrapWorkCache) waitAndForward() {
 			}
 		}
 
-		metricName := prometheusMetric.Desc().MetricName()
-		timestamp := time.Unix(0, tsMs*time.Millisecond.Nanoseconds())
+		func() {
+			localMutex.Lock()
+			defer localMutex.Unlock()
 
-		for _, conv := range scrapper.ConvertMeric(&pMetric) {
-			dp := datapoint.New(metricName+conv.MetricNameSuffix, scrapper.AppendDims(dims, conv.ExtraDims), conv.Value, conv.MType, timestamp)
-			ret[i] = dp
+			ret[i] = &dp
 			i++
 			if i == maxDatapoints {
-				sort.Sort(sortableDatapoint(ret))
-				swc.forwarder.AddDatapoints(ctx, ret)
-				i = 0
+				//sort.Sort(sortableDatapoint(ret))
+
+				func() {
+					localMutex.Unlock()
+					defer localMutex.Lock()
+
+					swc.flush()
+				}()
 			}
-		}
+		}()
 	}
+	stopFlusher <- true
 }
