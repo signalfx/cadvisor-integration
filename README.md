@@ -33,3 +33,7 @@ You may clone and build tool by yourself but the easiest way is to use prebuild 
 | --sendRate | "1s"  | Rate at which data is queried from cAdvisor and send to SignalFx. Possible values: [10s 30s 1m 5m 1h 1s 5s] | $SFX_SCRAPPER_SEND_RATE |
 | --cadvisorPort | 4194  | Port on which cAdvisor listens. | $SFX_SCRAPPER_CADVISOR_PORT |
 | --nodeServiceDiscoveryRate | "5m" | Rate at which nodes and services will be rediscovered. Possible values: [20m 3m 5m 10m 15m] | $SFX_SCRAPPER_NODE_SERVICE_DISCOVERY_RATE |
+
+## License
+
+This tool is licensed under the Apache License, Version 2.0. See LICENSE for full license text.
