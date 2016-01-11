@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/signalfx/prometheustosignalfx.svg?branch=master)](https://travis-ci.org/signalfx/prometheustosignalfx) [![Docker Repository on Quay.io](https://quay.io/repository/signalfx/prometheustosfx/status "Docker Repository on Quay.io")](https://quay.io/repository/signalfx/prometheustosfx)
+[![Build Status](https://travis-ci.org/signalfx/cadvisor-integration.svg?branch=master)](https://travis-ci.org/signalfx/cadvisor-integration) [![Docker Repository on Quay.io](https://quay.io/repository/signalfx/cadvisor-integration/status "Docker Repository on Quay.io")](https://quay.io/repository/signalfx/cadvisor-integration)
 
 # cadvisor-integration
 ## Overview
