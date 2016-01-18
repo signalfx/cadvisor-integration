@@ -624,7 +624,7 @@ func (swc *scrapWorkCache) waitAndForward() {
 			serviceName, ok := swc.podToServiceMap[podName]
 			swc.mutex.Unlock()
 			if ok {
-				dims["service"] = serviceName
+				dims["hostHasService"] = serviceName
 			}
 		}
 
