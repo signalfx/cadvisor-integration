@@ -614,6 +614,15 @@ func (swc *scrapWorkCache) waitAndForward() {
 
 		dp := value.Interface().(datapoint.Datapoint)
 		dims := dp.Dimensions
+
+		// filter POD level metrics
+		if dims["kubernetes_container_name"] == "POD" {
+			matched, _ := regexp.MatchString("^container_network_.*", dp.Metric)
+			if !matched {
+				continue
+			}
+		}
+
 		dims["cluster"] = swc.cfg.ClusterName
 
 		swc.fillNodeDims(chosen, dims)
