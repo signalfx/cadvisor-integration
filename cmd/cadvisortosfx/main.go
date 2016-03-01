@@ -156,6 +156,7 @@ func main() {
 		cli.StringFlag{
 			Name:  ingestURL,
 			Value: "https://ingest.signalfx.com",
+			EnvVar: "SFX_SCRAPPER_INGEST_URL",
 			Usage: "SignalFx ingest URL.",
 		},
 		cli.StringFlag{
@@ -187,7 +188,7 @@ func main() {
 			Usage:  fmt.Sprintf("Rate at which nodes and services will be rediscovered. Possible values: %v", getMapKeys(nodeServiceDiscoveryRates)),
 		},
 	}
-
+	
 	app.Action = func(c *cli.Context) {
 
 		paramAPIToken := c.String(apiToken)
