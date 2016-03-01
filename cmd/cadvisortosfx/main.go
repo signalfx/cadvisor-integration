@@ -154,9 +154,10 @@ func main() {
 	app.Flags = []cli.Flag{
 
 		cli.StringFlag{
-			Name:  ingestURL,
-			Value: "https://ingest.signalfx.com",
-			Usage: "SignalFx ingest URL.",
+			Name:   ingestURL,
+			Value:  "https://ingest.signalfx.com",
+			EnvVar: "SFX_SCRAPPER_INGEST_URL",
+			Usage:  "SignalFx ingest URL.",
 		},
 		cli.StringFlag{
 			Name:   apiToken,
