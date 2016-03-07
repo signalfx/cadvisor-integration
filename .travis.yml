@@ -4,7 +4,6 @@ sudo: false
 
 go:
   - 1.5
-  - tip
 
 install:
  - go get github.com/cep21/gobuild

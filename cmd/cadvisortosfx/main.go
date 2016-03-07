@@ -47,6 +47,9 @@ type Config struct {
 	ClusterName            string
 	NodeServiceRefreshRate string
 	CadvisorPort           int
+	KubernetesURL          string
+	KubernetesUsername     string
+	KubernetesPassword     string
 }
 
 type prometheusScraper struct {
@@ -123,6 +126,9 @@ const dataSendRate = "sendRate"
 const nodeServiceDiscoveryRate = "nodeServiceDiscoveryRate"
 const clusterName = "clusterName"
 const cadvisorPort = "cadvisorPort"
+const kubernetesURL = "kubernetesURL"
+const kubernetesUsername = "kubernetesUsername"
+const kubernetesPassword = "kubernetesPassword"
 
 var dataSendRates = map[string]time.Duration{
 	"5s":  5 * time.Second,
@@ -145,6 +151,7 @@ func printVersion() {
 }
 
 func main() {
+
 	flag.Parse()
 	app := cli.NewApp()
 	app.Name = "prometheustosfx"
@@ -186,6 +193,21 @@ func main() {
 			Value:  "5m",
 			EnvVar: "SFX_SCRAPPER_NODE_SERVICE_DISCOVERY_RATE",
 			Usage:  fmt.Sprintf("Rate at which nodes and services will be rediscovered. Possible values: %v", getMapKeys(nodeServiceDiscoveryRates)),
+		},
+		cli.StringFlag{
+			Name:   kubernetesURL,
+			Usage:  "kubernetes URL.",
+			EnvVar: "SFX_SCRAPPER_KUBERNETES_URL",
+		},
+		cli.StringFlag{
+			Name:   kubernetesUsername,
+			Usage:  "kubernetes username.",
+			EnvVar: "SFX_SCRAPPER_KUBERNETES_USERNAME",
+		},
+		cli.StringFlag{
+			Name:   kubernetesPassword,
+			Usage:  "kubernetes username.",
+			EnvVar: "SFX_SCRAPPER_KUBERNETES_PASSWORD",
 		},
 	}
 
@@ -235,6 +257,9 @@ func main() {
 				ClusterName:            paramClusterName,
 				NodeServiceRefreshRate: c.String(nodeServiceDiscoveryRate),
 				CadvisorPort:           c.Int(cadvisorPort),
+				KubernetesURL:          c.String(kubernetesURL),
+				KubernetesUsername:     c.String(kubernetesUsername),
+				KubernetesPassword:     c.String(kubernetesPassword),
 			},
 		}
 
@@ -277,12 +302,7 @@ func nameToLabel(name string) map[string]string {
 	return extraLabels
 }
 
-func updateNodes(cPort int) (hostIPtoNodeMap map[string]kubeAPI.Node, nodeIPs []string) {
-	kubeClient, kubeErr := kube.NewInCluster()
-	if kubeErr != nil {
-		glog.Errorf("Failed to create kubernetes client. Error: %v\n", kubeErr)
-		return nil, nil
-	}
+func updateNodes(kubeClient *kube.Client, cPort int) (hostIPtoNodeMap map[string]kubeAPI.Node, nodeIPs []string) {
 
 	hostIPtoNodeMap = make(map[string]kubeAPI.Node, 2)
 	nodeIPs = make([]string, 0, 2)
@@ -312,12 +332,7 @@ func updateNodes(cPort int) (hostIPtoNodeMap map[string]kubeAPI.Node, nodeIPs []
 	return hostIPtoNodeMap, nodeIPs
 }
 
-func updateServices() (podToServiceMap map[string]string) {
-	kubeClient, kubeErr := kube.NewInCluster()
-	if kubeErr != nil {
-		glog.Errorf("Failed to create kubernetes client. Error: %v\n", kubeErr)
-		return nil
-	}
+func updateServices(kubeClient *kube.Client) (podToServiceMap map[string]string) {
 
 	serviceList, apiErr := kubeClient.Services("").List(kubeLabels.Everything(), kubeFields.Everything())
 	if apiErr != nil {
@@ -340,9 +355,37 @@ func updateServices() (podToServiceMap map[string]string) {
 	return podToServiceMap
 }
 
+func newKubeClient(config *Config) (kubeClient *kube.Client, kubeErr error) {
+
+	if config.KubernetesURL == "" {
+		kubeClient, kubeErr = kube.NewInCluster()
+	} else {
+		kubeConfig := &kube.Config{
+			Host:     config.KubernetesURL,
+			Username: config.KubernetesUsername,
+			Password: config.KubernetesPassword,
+			Insecure: true,
+		}
+		kubeClient, kubeErr = kube.New(kubeConfig)
+	}
+
+	if kubeErr != nil {
+		glog.Errorf("Failed to create kubernetes client. Error: %v\n", kubeErr)
+		kubeClient = nil
+	}
+
+	return
+}
+
 func (p *prometheusScraper) main(paramDataSendRate, paramNodeServiceDiscoveryRate time.Duration) (err error) {
-	podToServiceMap := updateServices()
-	hostIPtoNameMap, nodeIPs := updateNodes(p.cfg.CadvisorPort)
+
+	kubeClient, err := newKubeClient(p.cfg)
+	if err != nil {
+		return err
+	}
+
+	podToServiceMap := updateServices(kubeClient)
+	hostIPtoNameMap, nodeIPs := updateNodes(kubeClient, p.cfg.CadvisorPort)
 	p.cfg.CadvisorURL = nodeIPs
 
 	cadvisorServers := make([]*url.URL, len(p.cfg.CadvisorURL))
@@ -388,10 +431,11 @@ func (p *prometheusScraper) main(paramDataSendRate, paramNodeServiceDiscoveryRat
 	// New nodes and services discovery
 	updateNodeAndPodTimer := time.NewTicker(paramNodeServiceDiscoveryRate)
 	go func() {
+
 		for range updateNodeAndPodTimer.C {
 
-			podMap := updateServices()
-			hostMap, _ := updateNodes(p.cfg.CadvisorPort)
+			podMap := updateServices(kubeClient)
+			hostMap, _ := updateNodes(kubeClient, p.cfg.CadvisorPort)
 
 			hostMapCopy := make(map[string]kubeAPI.Node)
 			for k, v := range hostMap {
