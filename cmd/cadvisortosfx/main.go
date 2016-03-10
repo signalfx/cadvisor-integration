@@ -662,10 +662,11 @@ func (swc *scrapWorkCache) waitAndForward() {
 
 		// filter POD level metrics
 		if dims["kubernetes_container_name"] == "POD" {
-			matched, _ := regexp.MatchString("^container_network_.*", dp.Metric)
+			matched, _ := regexp.MatchString("^pod_network_.*", dp.Metric)
 			if !matched {
 				continue
 			}
+			delete(dims, "kubernetes_container_name")
 		}
 
 		dims["cluster"] = swc.cfg.ClusterName
