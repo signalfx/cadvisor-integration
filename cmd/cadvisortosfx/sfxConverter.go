@@ -308,7 +308,7 @@ func NewCadvisorCollector(infoProvider infoProvider, f ContainerNameToLabelsFunc
 				},
 			},
 			{
-				name:        "container_network_receive_bytes_total",
+				name:        "pod_network_receive_bytes_total",
 				help:        "Cumulative count of bytes received",
 				valueType:   datapoint.Counter,
 				extraLabels: []string{"interface"},
@@ -319,7 +319,7 @@ func NewCadvisorCollector(infoProvider infoProvider, f ContainerNameToLabelsFunc
 				},
 			},
 			{
-				name:        "container_network_receive_packets_total",
+				name:        "pod_network_receive_packets_total",
 				help:        "Cumulative count of packets received",
 				valueType:   datapoint.Counter,
 				extraLabels: []string{"interface"},
@@ -330,7 +330,7 @@ func NewCadvisorCollector(infoProvider infoProvider, f ContainerNameToLabelsFunc
 				},
 			},
 			{
-				name:        "container_network_receive_packets_dropped_total",
+				name:        "pod_network_receive_packets_dropped_total",
 				help:        "Cumulative count of packets dropped while receiving",
 				valueType:   datapoint.Counter,
 				extraLabels: []string{"interface"},
@@ -341,7 +341,7 @@ func NewCadvisorCollector(infoProvider infoProvider, f ContainerNameToLabelsFunc
 				},
 			},
 			{
-				name:        "container_network_receive_errors_total",
+				name:        "pod_network_receive_errors_total",
 				help:        "Cumulative count of errors encountered while receiving",
 				valueType:   datapoint.Counter,
 				extraLabels: []string{"interface"},
@@ -352,7 +352,7 @@ func NewCadvisorCollector(infoProvider infoProvider, f ContainerNameToLabelsFunc
 				},
 			},
 			{
-				name:        "container_network_transmit_bytes_total",
+				name:        "pod_network_transmit_bytes_total",
 				help:        "Cumulative count of bytes transmitted",
 				valueType:   datapoint.Counter,
 				extraLabels: []string{"interface"},
@@ -363,7 +363,7 @@ func NewCadvisorCollector(infoProvider infoProvider, f ContainerNameToLabelsFunc
 				},
 			},
 			{
-				name:        "container_network_transmit_packets_total",
+				name:        "pod_network_transmit_packets_total",
 				help:        "Cumulative count of packets transmitted",
 				valueType:   datapoint.Counter,
 				extraLabels: []string{"interface"},
@@ -374,7 +374,7 @@ func NewCadvisorCollector(infoProvider infoProvider, f ContainerNameToLabelsFunc
 				},
 			},
 			{
-				name:        "container_network_transmit_packets_dropped_total",
+				name:        "pod_network_transmit_packets_dropped_total",
 				help:        "Cumulative count of packets dropped while transmitting",
 				valueType:   datapoint.Counter,
 				extraLabels: []string{"interface"},
@@ -385,7 +385,7 @@ func NewCadvisorCollector(infoProvider infoProvider, f ContainerNameToLabelsFunc
 				},
 			},
 			{
-				name:        "container_network_transmit_errors_total",
+				name:        "pod_network_transmit_errors_total",
 				help:        "Cumulative count of errors encountered while transmitting",
 				valueType:   datapoint.Counter,
 				extraLabels: []string{"interface"},
