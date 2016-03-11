@@ -120,6 +120,7 @@ func newCadvisorInfoProvider(cadvisorClient *client.Client) *cadvisorInfoProvide
 const autoFlushTimerDuration = 500 * time.Millisecond
 const maxDatapoints = 50
 
+const dataSourceType = "kubernetes"
 const ingestURL = "ingestURL"
 const apiToken = "apiToken"
 const dataSendRate = "sendRate"
@@ -669,19 +670,10 @@ func (swc *scrapWorkCache) waitAndForward() {
 			delete(dims, "kubernetes_container_name")
 		}
 
+		dims["hostHasService"] = dataSourceType
 		dims["cluster"] = swc.cfg.ClusterName
 
 		swc.fillNodeDims(chosen, dims)
-
-		podName, ok := dims["kubernetes_pod_name"]
-		if ok {
-			swc.mutex.Lock()
-			serviceName, ok := swc.podToServiceMap[podName]
-			swc.mutex.Unlock()
-			if ok {
-				dims["hostHasService"] = serviceName
-			}
-		}
 
 		func() {
 			localMutex.Lock()
