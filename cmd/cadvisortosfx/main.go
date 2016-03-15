@@ -670,7 +670,7 @@ func (swc *scrapWorkCache) waitAndForward() {
 			delete(dims, "kubernetes_container_name")
 		}
 
-		dims["hostHasService"] = dataSourceType
+		dims["sf_hostHasService"] = dataSourceType
 		dims["cluster"] = swc.cfg.ClusterName
 
 		swc.fillNodeDims(chosen, dims)
