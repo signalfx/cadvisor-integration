@@ -23,7 +23,7 @@ You can deploy it to run in a single pod within a Kubernetes cluster where it wi
 	    spec:
 	      containers:
 	      - name: "cadvisor-signalfx"
-	        image: "quay.io/signalfx/prometheustosfx:latest"
+	        image: "quay.io/signalfx/cadvisor-integration:latest"
 	        env:
 	      - name: SFX_SCRAPPER_API_TOKEN
 	        value: <API TOKEN>
