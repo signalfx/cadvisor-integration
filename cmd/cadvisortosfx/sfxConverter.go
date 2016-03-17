@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/signalfx/golib/datapoint"
@@ -101,7 +102,6 @@ func NewCadvisorCollector(infoProvider infoProvider, f ContainerNameToLabelsFunc
 				name:      "container_cpu_usage_seconds_total",
 				help:      "Cumulative cpu time consumed per cpu in nanoseconds.",
 				valueType: datapoint.Counter,
-				//extraLabels: []string{"cpu"},
 				getValues: func(s *info.ContainerStats) metricValues {
 					return metricValues{{value: datapoint.NewIntValue(int64(s.Cpu.Usage.Total))}}
 				},
@@ -112,6 +112,23 @@ func NewCadvisorCollector(infoProvider infoProvider, f ContainerNameToLabelsFunc
 				valueType: datapoint.Counter,
 				getValues: func(s *info.ContainerStats) metricValues {
 					return metricValues{{value: datapoint.NewIntValue(int64(s.Cpu.Usage.Total / 10000000))}}
+				},
+			},
+			{
+				name:        "container_cpu_utilization_per_core",
+				help:        "Cumulative cpu utilization in percentages per core",
+				valueType:   datapoint.Counter,
+				extraLabels: []string{"cpu"},
+				getValues: func(s *info.ContainerStats) metricValues {
+					metricValues := make(metricValues, len(s.Cpu.Usage.PerCpu))
+					for index, coreUsage := range s.Cpu.Usage.PerCpu {
+						if coreUsage > 0 {
+							metricValues[index] = metricValue{value: datapoint.NewIntValue(int64(coreUsage / 10000000)), labels: []string{"cpu" + strconv.Itoa(index)}}
+						} else {
+							metricValues[index] = metricValue{value: datapoint.NewIntValue(int64(0)), labels: []string{strconv.Itoa(index)}}
+						}
+					}
+					return metricValues
 				},
 			},
 			{
