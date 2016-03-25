@@ -155,8 +155,8 @@ func main() {
 
 	flag.Parse()
 	app := cli.NewApp()
-	app.Name = "prometheustosfx"
-	app.Usage = "scraps metrics from cAdvisor and forwards them to SignalFx."
+	app.Name = "cadvisor-signalfx"
+	app.Usage = "scraps metrics from kubernetes cadvisor and forwards them to SignalFx."
 	app.Version = "git commit: " + toolVersion
 
 	app.Flags = []cli.Flag{
