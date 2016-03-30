@@ -675,6 +675,10 @@ func (swc *scrapWorkCache) waitAndForward() {
 
 		swc.fillNodeDims(chosen, dims)
 
+		// remove high cardinality dimensions
+		delete(dims, "id")
+		delete(dims, "name")
+
 		func() {
 			localMutex.Lock()
 			defer localMutex.Unlock()
