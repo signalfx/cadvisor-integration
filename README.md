@@ -25,12 +25,12 @@ You can deploy it to run in a single pod within a Kubernetes cluster where it wi
 	      - name: "cadvisor-signalfx"
 	        image: "quay.io/signalfx/cadvisor-integration:latest"
 	        env:
-	      - name: SFX_SCRAPPER_API_TOKEN
-	        value: <API TOKEN>
-	      - name: SFX_SCRAPPER_CLUSTER_NAME
-	        value: <CLUSTER NAME>
-	      - name: SFX_SCRAPPER_SEND_RATE
-	        value: 5s
+	        - name: SFX_SCRAPPER_API_TOKEN
+	          value: <API TOKEN>
+	        - name: SFX_SCRAPPER_CLUSTER_NAME
+	          value: <CLUSTER NAME>
+	        - name: SFX_SCRAPPER_SEND_RATE
+	          value: 5s
 
 **Step 2** - Deploy to your cluster. e.g. `kubectl create -f cadvisor-signalfx.yaml`
 	      
