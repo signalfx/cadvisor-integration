@@ -511,9 +511,13 @@ func (c *CadvisorCollector) collectContainersInfo(ch chan<- datapoint.Datapoint)
 		}
 
 		// Now for the actual metrics
-		for _, stats := range container.Stats {
+		if len(container.Stats) > 0 {
+			// only get the latest stats from this container. note/warning: the stats array contains historical statistics in earliest-to-latest order
+			lastStatIndex := len(container.Stats) - 1
+			stat := container.Stats[lastStatIndex]
+
 			for _, cm := range c.containerMetrics {
-				for _, metricValue := range cm.getValues(stats) {
+				for _, metricValue := range cm.getValues(stat) {
 					newDims := copyDims(dims)
 
 					// Add extra dimensions
@@ -521,11 +525,10 @@ func (c *CadvisorCollector) collectContainersInfo(ch chan<- datapoint.Datapoint)
 						newDims[label] = metricValue.labels[i]
 					}
 
-					ch <- *datapoint.New(cm.name, newDims, metricValue.value, cm.valueType, stats.Timestamp)
+					ch <- *datapoint.New(cm.name, newDims, metricValue.value, cm.valueType, stat.Timestamp)
 				}
 			}
 		}
-
 	}
 }
 
