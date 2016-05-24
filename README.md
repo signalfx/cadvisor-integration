@@ -45,6 +45,17 @@ You can deploy it to run in a single pod within a Kubernetes cluster where it wi
 | --sendRate | "1s"  | The rate at which data is queried from cAdvisor and sent to SignalFx. Possible values: [10s 30s 1m 5m 1h 1s 5s] | $SFX_SCRAPPER_SEND_RATE |
 | --nodeServiceDiscoveryRate | "5m" | The rate at which nodes and services will be rediscovered. Possible values: [20m 3m 5m 10m 15m] | $SFX_SCRAPPER_NODE_SERVICE_DISCOVERY_RATE |
 
+
+## Troubleshooting
+In certain deployments, the cadvisor-integration may fail because Kubernetes cluster nodes are unable to be auto-discovered. This seems to happen mainly/exclusively during a manual deployment of Kubernetes entirely on CentOS 7 using an IPv6 configuration. 
+
+This issue can be worked around by adding an explicit entry for the IP (and port, if necessary) of the Kubernetes Master Node API at the very end of the _cadvisor-signalfx.yaml_ file. 
+
+Example:
+
+	name:  SFX_SCRAPPER_KUBERNETES_URL
+	value: <KUBERNETES_MASTER_NODE_IP:PORT>
+
 ## License
 
 This tool is licensed under the Apache License, Version 2.0. See LICENSE for full license text.
