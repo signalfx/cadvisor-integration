@@ -43,7 +43,7 @@ You can deploy it to run in a single pod within a Kubernetes cluster where it wi
 | --clusterName | | The dimension name for this kubernetes cluster.  | $SFX_SCRAPPER_CLUSTER_NAME |
 | --cadvisorPort | 4194  | The port on which the kubernetes cAdvisor listens. | $SFX_SCRAPPER_CADVISOR_PORT |
 | --sendRate | "1s"  | The rate at which data is queried from cAdvisor and sent to SignalFx. Possible values: [10s 30s 1m 5m 1h 1s 5s] | $SFX_SCRAPPER_SEND_RATE |
-| --nodeServiceDiscoveryRate | "5m" | The rate at which nodes and services will be rediscovered. Possible values: [20m 3m 5m 10m 15m] | $SFX_SCRAPPER_NODE_SERVICE_DISCOVERY_RATE |
+| --nodeServiceDiscoveryRate | "5m" | The rate at which nodes and services will be rediscovered. Possible values: [1m 3m 5m 10m 15m 20m] | $SFX_SCRAPPER_NODE_SERVICE_DISCOVERY_RATE |
 
 
 ## Troubleshooting
