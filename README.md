@@ -47,9 +47,9 @@ You can deploy it to run in a single pod within a Kubernetes cluster where it wi
 
 
 ## Troubleshooting
-In certain deployments, the cadvisor-integration may fail because Kubernetes cluster nodes are unable to be auto-discovered. This seems to happen mainly/exclusively during a manual deployment of Kubernetes entirely on CentOS 7 using an IPv6 configuration. 
+The default configuration for this integration uses the credentials of the pod to communicate securely with the kubernetes apiserver.  For more details see "Accessing the API from a Pod" section at http://kubernetes.io/docs/user-guide/accessing-the-cluster
 
-This issue can be worked around by adding an explicit entry for the IP (and port, if necessary) of the Kubernetes Master Node API at the very end of the _cadvisor-signalfx.yaml_ file.
+However, if the kubernetes cluster is not setup to support accessing the api from a pod then an extra configuration is required.  Add an environment variable for the IP (and port, if necessary) of the Kubernetes Master Node API to the very end of the _cadvisor-signalfx.yaml_ file.
 
 Example:
 
