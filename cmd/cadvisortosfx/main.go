@@ -14,6 +14,7 @@ import (
 	"net/url"
 
 	"flag"
+
 	"github.com/golang/glog"
 
 	"encoding/json"
@@ -23,6 +24,7 @@ import (
 
 	"github.com/signalfx/golib/datapoint"
 	"github.com/signalfx/metricproxy/protocol/signalfx"
+	"github.com/signalfx/neo-agent/cadvisor/converter"
 
 	"github.com/codegangsta/cli"
 	"github.com/goinggo/workpool"
@@ -34,6 +36,14 @@ import (
 	"github.com/google/cadvisor/client"
 	info "github.com/google/cadvisor/info/v1"
 )
+
+func init() {
+	re = regexp.MustCompile(`^k8s_(?P<kubernetes_container_name>[^_\.]+)[^_]+_(?P<kubernetes_pod_name>[^_]+)_(?P<kubernetes_namespace>[^_]+)`)
+	reCaptureNames = re.SubexpNames()
+}
+
+var re *regexp.Regexp
+var reCaptureNames []string
 
 // Set by build system
 var toolVersion = "NOT SET"
@@ -70,7 +80,7 @@ func (wp *workProxy) DoWork(workRoutine int) {
 
 type scrapWork2 struct {
 	serverURL  string
-	collector  *CadvisorCollector
+	collector  *converter.CadvisorCollector
 	chRecvOnly chan datapoint.Datapoint
 }
 
@@ -271,9 +281,6 @@ func main() {
 		}
 	}
 
-	re = regexp.MustCompile(`^k8s_(?P<kubernetes_container_name>[^_\.]+)[^_]+_(?P<kubernetes_pod_name>[^_]+)_(?P<kubernetes_namespace>[^_]+)`)
-	reCaptureNames = re.SubexpNames()
-
 	app.Run(os.Args)
 }
 
@@ -289,9 +296,6 @@ func newSfxClient(ingestURL, authToken string) (forwarder *signalfx.Forwarder) {
 	forwarder.UserAgent(fmt.Sprintf("SignalFxScrapper/1.0 (gover %s)", runtime.Version()))
 	return
 }
-
-var re *regexp.Regexp
-var reCaptureNames []string
 
 func nameToLabel(name string) map[string]string {
 	extraLabels := map[string]string{}
@@ -463,7 +467,7 @@ func (p *prometheusScraper) main(paramDataSendRate, paramNodeServiceDiscoveryRat
 
 					scrapWorkCache.addWork(&scrapWork2{
 						serverURL:  serverURL,
-						collector:  NewCadvisorCollector(newCadvisorInfoProvider(cadvisorClient), nameToLabel),
+						collector:  converter.NewCadvisorCollector(newCadvisorInfoProvider(cadvisorClient), nameToLabel),
 						chRecvOnly: make(chan datapoint.Datapoint),
 					})
 				}
@@ -525,7 +529,7 @@ func (swc *scrapWorkCache) buildWorkList(URLList []string) {
 
 		swc.addWork(&scrapWork2{
 			serverURL:  serverURL,
-			collector:  NewCadvisorCollector(newCadvisorInfoProvider(cadvisorClient), nameToLabel),
+			collector:  converter.NewCadvisorCollector(newCadvisorInfoProvider(cadvisorClient), nameToLabel),
 			chRecvOnly: make(chan datapoint.Datapoint),
 		})
 	}
