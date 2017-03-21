@@ -8,7 +8,7 @@ import (
 
 	"github.com/codegangsta/cli"
 	"github.com/golang/glog"
-	"github.com/signalfx/neo-agent/cadvisor/poller"
+	"github.com/signalfx/cadvisor-integration/poller"
 )
 
 const ingestURL = "ingestURL"
