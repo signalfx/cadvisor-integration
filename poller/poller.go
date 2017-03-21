@@ -21,13 +21,15 @@ import (
 
 	"github.com/signalfx/golib/datapoint"
 	"github.com/signalfx/metricproxy/protocol/signalfx"
-	"github.com/signalfx/neo-agent/cadvisor/converter"
+	"github.com/signalfx/cadvisor-integration/converter"
 
 	"github.com/goinggo/workpool"
 	kubeAPI "k8s.io/kubernetes/pkg/api"
 	kube "k8s.io/kubernetes/pkg/client/unversioned"
 	kubeFields "k8s.io/kubernetes/pkg/fields"
 	kubeLabels "k8s.io/kubernetes/pkg/labels"
+
+	"os"
 
 	"github.com/google/cadvisor/client"
 	info "github.com/google/cadvisor/info/v1"
@@ -221,6 +223,50 @@ func newKubeClient(config *Config) (kubeClient *kube.Client, kubeErr error) {
 	}
 
 	return
+}
+
+func MonitorNode(cfg *Config, forwarder *signalfx.Forwarder, dataSendRate time.Duration) error {
+	swc := newScrapWorkCache(cfg, forwarder)
+	cadvisorClient, err := client.NewClient(cfg.CadvisorURL[0])
+	if err != nil {
+		return err
+	}
+
+	collector := converter.NewCadvisorCollector(newCadvisorInfoProvider(cadvisorClient), nameToLabel)
+
+	// TODO: fill in if we want node dimensions but that requires contacting apiserver.
+	// swc.hostIPtoNameMap[]
+
+	sw2 := &scrapWork2{
+		// I think only used for swc.HostIPToNameMap lookup
+		serverURL:  "",
+		collector:  collector,
+		chRecvOnly: make(chan datapoint.Datapoint),
+	}
+
+	swc.addWork(sw2)
+
+	ticker := time.NewTicker(dataSendRate)
+	stop := make(chan bool, 1)
+
+	go func() {
+		for {
+			select {
+			case <-stop:
+				glog.Info("stopping collection")
+				return
+			case <-ticker.C:
+				collector.Collect(sw2.chRecvOnly)
+			}
+		}
+	}()
+
+	// Not sure if/how waitAndForward ever returns.
+	swc.waitAndForward()
+	ticker.Stop()
+	stop <- true
+
+	return nil
 }
 
 func (p *PrometheusScraper) Main(paramDataSendRate, paramNodeServiceDiscoveryRate time.Duration) (err error) {
@@ -435,6 +481,11 @@ func (swc *scrapWorkCache) fillNodeDims(chosen int, dims map[string]string) {
 		dims["node_kubelet_version"] = node.Status.NodeInfo.KubeletVersion
 		dims["node_os_image"] = node.Status.NodeInfo.OsImage
 		dims["node_kubeproxy_version"] = node.Status.NodeInfo.KubeProxyVersion
+	} else {
+		// This should only happen when doing MonitorNode().
+		if nodeName := os.Getenv("KUBERNETES_NODE_NAME"); nodeName != "" {
+			dims["node"] = nodeName
+		}
 	}
 }
 
