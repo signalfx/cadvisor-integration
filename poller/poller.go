@@ -19,9 +19,9 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/signalfx/cadvisor-integration/converter"
 	"github.com/signalfx/golib/datapoint"
 	"github.com/signalfx/metricproxy/protocol/signalfx"
-	"github.com/signalfx/cadvisor-integration/converter"
 
 	"github.com/goinggo/workpool"
 	kubeAPI "k8s.io/kubernetes/pkg/api"
@@ -58,6 +58,7 @@ type Config struct {
 	KubernetesURL          string
 	KubernetesUsername     string
 	KubernetesPassword     string
+	DefaultDimensions      map[string]string
 }
 
 type PrometheusScraper struct {
@@ -570,6 +571,10 @@ func (swc *scrapWorkCache) waitAndForward() {
 		dims["cluster"] = swc.cfg.ClusterName
 
 		swc.fillNodeDims(chosen, dims)
+
+		for k, v := range swc.cfg.DefaultDimensions {
+			dims[k] = v
+		}
 
 		// remove high cardinality dimensions
 		delete(dims, "id")
