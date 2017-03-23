@@ -226,11 +226,12 @@ func newKubeClient(config *Config) (kubeClient *kube.Client, kubeErr error) {
 	return
 }
 
-func MonitorNode(cfg *Config, forwarder *signalfx.Forwarder, dataSendRate time.Duration) error {
+// MonitorNode collects metrics from a single node
+func MonitorNode(cfg *Config, forwarder *signalfx.Forwarder, dataSendRate time.Duration) (stop chan bool, stopped chan bool, err error) {
 	swc := newScrapWorkCache(cfg, forwarder)
 	cadvisorClient, err := client.NewClient(cfg.CadvisorURL[0])
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	collector := converter.NewCadvisorCollector(newCadvisorInfoProvider(cadvisorClient), nameToLabel)
@@ -248,13 +249,16 @@ func MonitorNode(cfg *Config, forwarder *signalfx.Forwarder, dataSendRate time.D
 	swc.addWork(sw2)
 
 	ticker := time.NewTicker(dataSendRate)
-	stop := make(chan bool, 1)
+	stop = make(chan bool, 1)
+	stopped = make(chan bool, 1)
 
 	go func() {
 		for {
 			select {
 			case <-stop:
 				glog.Info("stopping collection")
+				ticker.Stop()
+				close(sw2.chRecvOnly)
 				return
 			case <-ticker.C:
 				collector.Collect(sw2.chRecvOnly)
@@ -262,12 +266,13 @@ func MonitorNode(cfg *Config, forwarder *signalfx.Forwarder, dataSendRate time.D
 		}
 	}()
 
-	// Not sure if/how waitAndForward ever returns.
-	swc.waitAndForward()
-	ticker.Stop()
-	stop <- true
+	go func() {
+		swc.waitAndForward()
+		stopped <- true
+		glog.Info("waitAndForward returned")
+	}()
 
-	return nil
+	return stop, stopped, nil
 }
 
 func (p *PrometheusScraper) Main(paramDataSendRate, paramNodeServiceDiscoveryRate time.Duration) (err error) {
@@ -484,8 +489,9 @@ func (swc *scrapWorkCache) fillNodeDims(chosen int, dims map[string]string) {
 		dims["node_kubeproxy_version"] = node.Status.NodeInfo.KubeProxyVersion
 	} else {
 		// This should only happen when doing MonitorNode().
-		if nodeName := os.Getenv("KUBERNETES_NODE_NAME"); nodeName != "" {
-			dims["node"] = nodeName
+		// TODO: Add rest of dimensions above.
+		if hostname, err := os.Hostname(); err != nil {
+			dims["node"] = hostname
 		}
 	}
 }
