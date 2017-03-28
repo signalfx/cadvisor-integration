@@ -491,7 +491,6 @@ func (swc *scrapWorkCache) fillNodeDims(chosen int, dims map[string]string) {
 		// This should only happen when doing MonitorNode().
 		// TODO: Add rest of dimensions above.
 		if hostname, err := os.Hostname(); err == nil {
-			dims["node"] = hostname
 			dims["host"] = hostname
 		}
 	}
