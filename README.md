@@ -56,6 +56,17 @@ Example:
 	name:  SFX_SCRAPPER_KUBERNETES_URL
 	value: <http(s)://KUBERNETES_MASTER_NODE_IP_ADDR:port>
 
+
+## Troubleshooting
+In certain deployments, the cadvisor-integration may fail because Kubernetes cluster nodes are unable to be auto-discovered. This seems to happen mainly/exclusively during a manual deployment of Kubernetes entirely on CentOS 7 using an IPv6 configuration. 
+
+This issue can be worked around by adding an explicit entry for the IP (and port, if necessary) of the Kubernetes Master Node API at the very end of the _cadvisor-signalfx.yaml_ file. 
+
+Example:
+
+	name:  SFX_SCRAPPER_KUBERNETES_URL
+	value: <KUBERNETES_MASTER_NODE_IP:PORT>
+
 ## License
 
 This tool is licensed under the Apache License, Version 2.0. See LICENSE for full license text.
