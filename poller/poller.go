@@ -496,6 +496,13 @@ func (swc *scrapWorkCache) fillNodeDims(chosen int, dims map[string]string) {
 	}
 }
 
+func min(x, y int) int {
+	if x < y {
+		return x
+	}
+	return y
+}
+
 // Wait on channel input and forward datapoints to SignalFx.
 // This function will block.
 func (swc *scrapWorkCache) waitAndForward() {
@@ -520,7 +527,8 @@ func (swc *scrapWorkCache) waitAndForward() {
 			defer localMutex.Unlock()
 
 			if i > 0 {
-				swc.forwarder.AddDatapoints(ctx, ret)
+				min := min(i, maxDatapoints)
+				swc.forwarder.AddDatapoints(ctx, ret[:min])
 				i = 0
 			}
 		}()
