@@ -1,13 +1,13 @@
 package converter
 
 import (
+	"regexp"
 	"strconv"
 	"time"
 
-	"github.com/signalfx/golib/datapoint"
-
 	"github.com/golang/glog"
 	info "github.com/google/cadvisor/info/v1"
+	"github.com/signalfx/golib/datapoint"
 )
 
 // This will usually be manager.Manager, but can be swapped out for testing.
@@ -43,6 +43,9 @@ type CadvisorCollector struct {
 	infoProvider          infoProvider
 	containerMetrics      []containerMetric
 	containerNameToLabels ContainerNameToLabelsFunc
+	excludedImages        []*regexp.Regexp
+	excludedNames         []*regexp.Regexp
+	excludedLabels        [][]*regexp.Regexp
 }
 
 // fsValues is a helper method for assembling per-filesystem stats.
@@ -69,8 +72,11 @@ func networkValues(net []info.InterfaceStats, valueFn func(*info.InterfaceStats)
 }
 
 // NewCadvisorCollector creates new CadvisorCollector
-func NewCadvisorCollector(infoProvider infoProvider, f ContainerNameToLabelsFunc) *CadvisorCollector {
+func NewCadvisorCollector(infoProvider infoProvider, f ContainerNameToLabelsFunc, images []*regexp.Regexp, names []*regexp.Regexp, labels [][]*regexp.Regexp) *CadvisorCollector {
 	return &CadvisorCollector{
+		excludedImages:        images,
+		excludedNames:         names,
+		excludedLabels:        labels,
 		infoProvider:          infoProvider,
 		containerNameToLabels: f,
 		containerMetrics: []containerMetric{
@@ -463,6 +469,56 @@ func copyDims(dims map[string]string) map[string]string {
 	return newMap
 }
 
+// isExcludedLabel - filters out containers if their labels match the excludedLabels regexp
+func (c *CadvisorCollector) isExcludedLabel(container info.ContainerInfo) bool {
+	var exlabel []*regexp.Regexp
+	for _, exlabel = range c.excludedLabels {
+		for label, value := range container.Spec.Labels {
+			if exlabel[0].Match([]byte(label)) && exlabel[1].Match([]byte(value)) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// isExcludedImage - filters out containers if their image matches the excludedImages regexp
+func (c *CadvisorCollector) isExcludedImage(container info.ContainerInfo) bool {
+	var eximage *regexp.Regexp
+	var image = []byte(container.Spec.Image)
+	for _, eximage = range c.excludedImages {
+		if eximage.Match(image) {
+			return true
+		}
+	}
+	return false
+}
+
+// isExcludedName - filters out containers if their name matches the excludedContainer regexp
+func (c *CadvisorCollector) isExcludedName(container info.ContainerInfo) bool {
+	var exname *regexp.Regexp
+	var name = []byte(container.Name)
+	for _, exname = range c.excludedNames {
+		if exname.Match(name) {
+			return true
+		}
+		for _, alias := range container.Aliases {
+			var aliasBytes = []byte(alias)
+			if exname.Match(aliasBytes) {
+				return true
+			}
+
+		}
+	}
+	return false
+}
+
+// isExcluded - filters out containers if their name, images, or labels match the configured regexp filters
+func (c *CadvisorCollector) isExcluded(container info.ContainerInfo) bool {
+	return c.isExcludedImage(container) || c.isExcludedName(container) || c.isExcludedLabel(container)
+}
+
 func (c *CadvisorCollector) collectContainersInfo(ch chan<- datapoint.Datapoint) {
 	containers, err := c.infoProvider.SubcontainersInfo("/")
 	if err != nil {
@@ -471,6 +527,9 @@ func (c *CadvisorCollector) collectContainersInfo(ch chan<- datapoint.Datapoint)
 		return
 	}
 	for _, container := range containers {
+		if c.isExcluded(container) {
+			continue
+		}
 		dims := make(map[string]string)
 		id := container.Name
 		dims["id"] = id
