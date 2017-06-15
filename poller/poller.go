@@ -62,6 +62,7 @@ type Config struct {
 	ExcludedNames          []*regexp.Regexp
 	ExcludedImages         []*regexp.Regexp
 	ExcludedLabels         [][]*regexp.Regexp
+	ExcludedMetrics        map[string]bool
 }
 
 type PrometheusScraper struct {
@@ -237,7 +238,7 @@ func MonitorNode(cfg *Config, forwarder *signalfx.Forwarder, dataSendRate time.D
 		return nil, nil, err
 	}
 
-	collector := converter.NewCadvisorCollector(newCadvisorInfoProvider(cadvisorClient), nameToLabel, cfg.ExcludedImages, cfg.ExcludedNames, cfg.ExcludedLabels)
+	collector := converter.NewCadvisorCollector(newCadvisorInfoProvider(cadvisorClient), nameToLabel, cfg.ExcludedImages, cfg.ExcludedNames, cfg.ExcludedLabels, cfg.ExcludedMetrics)
 
 	// TODO: fill in if we want node dimensions but that requires contacting apiserver.
 	// swc.hostIPtoNameMap[]
@@ -362,7 +363,7 @@ func (p *PrometheusScraper) Main(paramDataSendRate, paramNodeServiceDiscoveryRat
 
 					scrapWorkCache.addWork(&scrapWork2{
 						serverURL:  serverURL,
-						collector:  converter.NewCadvisorCollector(newCadvisorInfoProvider(cadvisorClient), nameToLabel, []*regexp.Regexp{}, []*regexp.Regexp{}, [][]*regexp.Regexp{}),
+						collector:  converter.NewCadvisorCollector(newCadvisorInfoProvider(cadvisorClient), nameToLabel, []*regexp.Regexp{}, []*regexp.Regexp{}, [][]*regexp.Regexp{}, map[string]bool{}),
 						chRecvOnly: make(chan datapoint.Datapoint),
 					})
 				}
@@ -424,7 +425,7 @@ func (swc *scrapWorkCache) buildWorkList(URLList []string) {
 
 		swc.addWork(&scrapWork2{
 			serverURL:  serverURL,
-			collector:  converter.NewCadvisorCollector(newCadvisorInfoProvider(cadvisorClient), nameToLabel, []*regexp.Regexp{}, []*regexp.Regexp{}, [][]*regexp.Regexp{}),
+			collector:  converter.NewCadvisorCollector(newCadvisorInfoProvider(cadvisorClient), nameToLabel, []*regexp.Regexp{}, []*regexp.Regexp{}, [][]*regexp.Regexp{}, map[string]bool{}),
 			chRecvOnly: make(chan datapoint.Datapoint),
 		})
 	}
