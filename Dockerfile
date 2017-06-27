@@ -1,4 +1,4 @@
-FROM golang:1.5.1
+FROM golang:1.6.4
 
 ENV GO15VENDOREXPERIMENT 1
 RUN mkdir -p /go/src/github.com/signalfx/cadvisor-integration
