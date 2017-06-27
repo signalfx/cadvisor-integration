@@ -43,7 +43,7 @@ func init() {
 var re *regexp.Regexp
 var reCaptureNames []string
 
-// Set by build system
+// ToolVersion set by build system
 var ToolVersion = "NOT SET"
 
 // Config for prometheusScraper
@@ -65,6 +65,7 @@ type Config struct {
 	ExcludedMetrics        map[string]bool
 }
 
+// PrometheusScraper scrapper for prometheus
 type PrometheusScraper struct {
 	Forwarder *signalfx.Forwarder
 	Cfg       *Config
@@ -138,6 +139,7 @@ func printVersion() {
 	glog.Infof("git build commit: %v\n", ToolVersion)
 }
 
+// NewSfxClient creates a new sfx client
 func NewSfxClient(ingestURL, authToken string) (forwarder *signalfx.Forwarder) {
 	forwarder = signalfx.NewSignalfxJSONForwarder(strings.Join([]string{ingestURL, "v2/datapoint"}, "/"), time.Second*10, authToken, 10, "", "", "") //http://lab-ingest.corp.signalfuse.com:8080
 	forwarder.UserAgent(fmt.Sprintf("SignalFxScrapper/1.0 (gover %s)", runtime.Version()))
@@ -279,6 +281,7 @@ func MonitorNode(cfg *Config, forwarder *signalfx.Forwarder, dataSendRate time.D
 	return stop, stopped, nil
 }
 
+// Main main function of PrometheusScraper
 func (p *PrometheusScraper) Main(paramDataSendRate, paramNodeServiceDiscoveryRate time.Duration) (err error) {
 
 	kubeClient, err := newKubeClient(p.Cfg)

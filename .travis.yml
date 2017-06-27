@@ -3,11 +3,11 @@ language: go
 sudo: false
 
 go:
-  - 1.5
+  - 1.6
 
 install:
  - go get github.com/cep21/gobuild
 
 script:
   - export GO15VENDOREXPERIMENT=1
-  - gobuild
+  - gobuild --verbose
