@@ -542,6 +542,13 @@ func (swc *scrapWorkCache) waitAndForward() {
 		}
 	}
 
+	resetMutex := &sync.Mutex{}
+	resetFlushTimer := func() {
+		resetMutex.Lock()
+		defer resetMutex.Unlock()
+		autoFlushTimer.Reset(autoFlushTimerDuration)
+	}
+
 	// This thread will flush ret buffer if requested
 	// Also it will auto flush it in 500 milliseconds
 	go func() {
@@ -551,7 +558,7 @@ func (swc *scrapWorkCache) waitAndForward() {
 				flushFunc(respChan)
 			case <-autoFlushTimer.C:
 				flushFunc(nil)
-				autoFlushTimer.Reset(autoFlushTimerDuration)
+				resetFlushTimer()
 			case <-stopFlusher:
 				return
 			}
@@ -559,7 +566,7 @@ func (swc *scrapWorkCache) waitAndForward() {
 	}()
 
 	for remaining > 0 {
-		autoFlushTimer.Reset(autoFlushTimerDuration)
+		resetFlushTimer()
 		chosen, value, ok := reflect.Select(swc.cases)
 		autoFlushTimer.Stop()
 		if !ok {
