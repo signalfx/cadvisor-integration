@@ -1,0 +1,19 @@
+version: 2
+
+jobs:
+  build:
+    working_directory: /go/src/github.com/signalfx/cadvisor-integration
+    docker:
+      - image: circleci/golang:1.7
+        environment:
+          GO15VENDOREXPERIMENT: 1
+    steps:
+      - checkout
+      - run: 
+          name: Install gobuild
+          command: |
+            go get github.com/signalfx/gobuild
+      - run:
+          name: Go Build it
+          command: |
+            gobuild
