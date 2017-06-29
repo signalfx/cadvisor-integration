@@ -593,7 +593,6 @@ func getMachineInfoMetrics(excludedMetrics map[string]bool) []machineInfoMetric 
 
 func getContainerSpecMetrics(excludedMetrics map[string]bool) []containerSpecMetric {
 	var metrics = []containerSpecMetric{
-		// ch <- *datapoint.New("container_start_time_seconds", copyDims(dims), datapoint.NewIntValue(container.Spec.CreationTime.Unix()), datapoint.Gauge, tt)
 		{
 			containerMetric: containerMetric{
 				name:        "container_start_time_seconds",
@@ -738,9 +737,6 @@ func (c *CadvisorCollector) collectContainersInfo(ch chan<- datapoint.Datapoint)
 
 		tt := time.Now()
 		// Container spec
-		// Start time of the container since unix epoch in seconds.
-		// ch <- *datapoint.New("container_start_time_seconds", copyDims(dims), datapoint.NewIntValue(container.Spec.CreationTime.Unix()), datapoint.Gauge, tt)
-
 		for _, cm := range c.containerSpecMetrics {
 			for _, metricValue := range cm.getValues(&container) {
 				newDims := copyDims(dims)
