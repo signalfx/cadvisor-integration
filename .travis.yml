@@ -10,4 +10,4 @@ install:
 
 script:
   - export GO15VENDOREXPERIMENT=1
-  - gobuild --verbose
+  - gobuild
