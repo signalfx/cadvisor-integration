@@ -35,17 +35,35 @@ type containerMetric struct {
 	getValues   func(s *info.ContainerStats) metricValues
 }
 
+func (c *containerMetric) getName() string {
+	return c.name
+}
+
+type containerSpecMetric struct {
+	containerMetric
+	getValues func(s *info.ContainerInfo) metricValues
+}
+
+type machineInfoMetric struct {
+	containerMetric
+	getValues func(s *info.MachineInfo) metricValues
+}
+
 // ContainerNameToLabelsFunc converter function
 type ContainerNameToLabelsFunc func(containerName string) map[string]string
 
 // CadvisorCollector metric collector and converter
 type CadvisorCollector struct {
-	infoProvider          infoProvider
-	containerMetrics      []containerMetric
-	containerNameToLabels ContainerNameToLabelsFunc
-	excludedImages        []*regexp.Regexp
-	excludedNames         []*regexp.Regexp
-	excludedLabels        [][]*regexp.Regexp
+	infoProvider            infoProvider
+	containerMetrics        []containerMetric
+	containerSpecMetrics    []containerSpecMetric
+	containerSpecMemMetrics []containerSpecMetric
+	containerSpecCPUMetrics []containerSpecMetric
+	containerNameToLabels   ContainerNameToLabelsFunc
+	excludedImages          []*regexp.Regexp
+	excludedNames           []*regexp.Regexp
+	excludedLabels          [][]*regexp.Regexp
+	machineInfoMetrics      []machineInfoMetric
 }
 
 // fsValues is a helper method for assembling per-filesystem stats.
@@ -71,8 +89,7 @@ func networkValues(net []info.InterfaceStats, valueFn func(*info.InterfaceStats)
 	return values
 }
 
-// NewCadvisorCollector creates new CadvisorCollector
-func NewCadvisorCollector(infoProvider infoProvider, f ContainerNameToLabelsFunc, excludedImages []*regexp.Regexp, excludedNames []*regexp.Regexp, excludedLabels [][]*regexp.Regexp, excludedMetrics map[string]bool) *CadvisorCollector {
+func getContainerMetrics(excludedMetrics map[string]bool) []containerMetric {
 	var metrics = []containerMetric{
 		{
 			name:      "container_last_seen",
@@ -452,16 +469,169 @@ func NewCadvisorCollector(infoProvider infoProvider, f ContainerNameToLabelsFunc
 			index++
 		}
 	}
+
 	// trim metrics down to the desired length
 	metrics = metrics[:index]
+	return metrics
+}
 
+func getContainerSpecCPUMetrics(excludedMetrics map[string]bool) []containerSpecMetric {
+	var metrics = []containerSpecMetric{
+		{
+			containerMetric: containerMetric{
+				name:        "container_spec_cpu_shares",
+				help:        "",
+				valueType:   datapoint.Gauge,
+				extraLabels: []string{},
+			},
+			getValues: func(container *info.ContainerInfo) metricValues {
+				return metricValues{{value: datapoint.NewIntValue(int64(container.Spec.Cpu.Limit))}}
+			},
+		},
+	}
+
+	var index = 0
+	for _, metric := range metrics {
+		// check if metric is not on the exclusion list
+		if _, ok := excludedMetrics[metric.name]; !ok {
+			metrics[index] = metric
+			index++
+		}
+	}
+	// trim metrics down to the desired length
+	metrics = metrics[:index]
+	return metrics
+}
+
+func getContainerSpecMemMetrics(excludedMetrics map[string]bool) []containerSpecMetric {
+	var metrics = []containerSpecMetric{
+		{
+			containerMetric: containerMetric{
+				name:        "container_spec_memory_limit_bytes",
+				help:        "",
+				valueType:   datapoint.Gauge,
+				extraLabels: []string{},
+			},
+			getValues: func(container *info.ContainerInfo) metricValues {
+				return metricValues{{value: datapoint.NewIntValue(int64(container.Spec.Memory.Limit))}}
+			},
+		},
+		{
+			containerMetric: containerMetric{
+				name:        "container_spec_memory_swap_limit_bytes",
+				help:        "",
+				valueType:   datapoint.Gauge,
+				extraLabels: []string{},
+			},
+			getValues: func(container *info.ContainerInfo) metricValues {
+				return metricValues{{value: datapoint.NewIntValue(int64(container.Spec.Memory.SwapLimit))}}
+			},
+		},
+	}
+
+	var index = 0
+	for _, metric := range metrics {
+		// check if metric is not on the exclusion list
+		if _, ok := excludedMetrics[metric.name]; !ok {
+			metrics[index] = metric
+			index++
+		}
+	}
+	// trim metrics down to the desired length
+	metrics = metrics[:index]
+	return metrics
+}
+
+func getMachineInfoMetrics(excludedMetrics map[string]bool) []machineInfoMetric {
+	var metrics = []machineInfoMetric{
+		{
+			containerMetric: containerMetric{
+				name:        "machine_cpu_frequency_khz",
+				help:        "",
+				valueType:   datapoint.Gauge,
+				extraLabels: []string{},
+			},
+			getValues: func(machineInfo *info.MachineInfo) metricValues {
+				return metricValues{{value: datapoint.NewIntValue(int64(machineInfo.CpuFrequency))}}
+			},
+		},
+		{
+			containerMetric: containerMetric{
+				name:        "machine_cpu_cores",
+				help:        "",
+				valueType:   datapoint.Gauge,
+				extraLabels: []string{},
+			},
+			getValues: func(machineInfo *info.MachineInfo) metricValues {
+				return metricValues{{value: datapoint.NewIntValue(int64(machineInfo.NumCores))}}
+			},
+		},
+		{
+			containerMetric: containerMetric{
+				name:        "machine_memory_bytes",
+				help:        "",
+				valueType:   datapoint.Gauge,
+				extraLabels: []string{},
+			},
+			getValues: func(machineInfo *info.MachineInfo) metricValues {
+				return metricValues{{value: datapoint.NewIntValue(int64(machineInfo.MemoryCapacity))}}
+			},
+		},
+	}
+	var index = 0
+	for _, metric := range metrics {
+		// check if metric is not on the exclusion list
+		if _, ok := excludedMetrics[metric.name]; !ok {
+			metrics[index] = metric
+			index++
+		}
+	}
+	// trim metrics down to the desired length
+	metrics = metrics[:index]
+	return metrics
+}
+
+func getContainerSpecMetrics(excludedMetrics map[string]bool) []containerSpecMetric {
+	var metrics = []containerSpecMetric{
+		{
+			containerMetric: containerMetric{
+				name:        "container_start_time_seconds",
+				help:        "",
+				valueType:   datapoint.Gauge,
+				extraLabels: []string{},
+			},
+			getValues: func(container *info.ContainerInfo) metricValues {
+				return metricValues{{value: datapoint.NewIntValue(container.Spec.CreationTime.Unix())}}
+			},
+		},
+	}
+
+	var index = 0
+	for _, metric := range metrics {
+		// check if metric is not on the exclusion list
+		if _, ok := excludedMetrics[metric.name]; !ok {
+			metrics[index] = metric
+			index++
+		}
+	}
+	// trim metrics down to the desired length
+	metrics = metrics[:index]
+	return metrics
+}
+
+// NewCadvisorCollector creates new CadvisorCollector
+func NewCadvisorCollector(infoProvider infoProvider, f ContainerNameToLabelsFunc, excludedImages []*regexp.Regexp, excludedNames []*regexp.Regexp, excludedLabels [][]*regexp.Regexp, excludedMetrics map[string]bool) *CadvisorCollector {
 	return &CadvisorCollector{
-		excludedImages:        excludedImages,
-		excludedNames:         excludedNames,
-		excludedLabels:        excludedLabels,
-		infoProvider:          infoProvider,
-		containerNameToLabels: f,
-		containerMetrics:      metrics,
+		excludedImages:          excludedImages,
+		excludedNames:           excludedNames,
+		excludedLabels:          excludedLabels,
+		infoProvider:            infoProvider,
+		containerNameToLabels:   f,
+		containerMetrics:        getContainerMetrics(excludedMetrics),
+		containerSpecCPUMetrics: getContainerSpecCPUMetrics(excludedMetrics),
+		containerSpecMemMetrics: getContainerSpecMemMetrics(excludedMetrics),
+		containerSpecMetrics:    getContainerSpecMetrics(excludedMetrics),
+		machineInfoMetrics:      getMachineInfoMetrics(excludedMetrics),
 	}
 }
 
@@ -567,19 +737,47 @@ func (c *CadvisorCollector) collectContainersInfo(ch chan<- datapoint.Datapoint)
 
 		tt := time.Now()
 		// Container spec
-		// Start time of the container since unix epoch in seconds.
-		ch <- *datapoint.New("container_start_time_seconds", copyDims(dims), datapoint.NewIntValue(container.Spec.CreationTime.Unix()), datapoint.Gauge, tt)
+		for _, cm := range c.containerSpecMetrics {
+			for _, metricValue := range cm.getValues(&container) {
+				newDims := copyDims(dims)
+
+				// Add extra dimensions
+				for i, label := range cm.extraLabels {
+					newDims[label] = metricValue.labels[i]
+				}
+
+				ch <- *datapoint.New(cm.name, newDims, metricValue.value, cm.valueType, tt)
+			}
+		}
 
 		if container.Spec.HasCpu {
-			// CPU share of the container.
-			ch <- *datapoint.New("container_spec_cpu_shares", copyDims(dims), datapoint.NewIntValue(int64(container.Spec.Cpu.Limit)), datapoint.Gauge, tt)
+			for _, cm := range c.containerSpecCPUMetrics {
+				for _, metricValue := range cm.getValues(&container) {
+					newDims := copyDims(dims)
+
+					// Add extra dimensions
+					for i, label := range cm.extraLabels {
+						newDims[label] = metricValue.labels[i]
+					}
+
+					ch <- *datapoint.New(cm.name, newDims, metricValue.value, cm.valueType, tt)
+				}
+			}
 		}
 
 		if container.Spec.HasMemory {
-			// Memory limit for the container.
-			ch <- *datapoint.New("container_spec_memory_limit_bytes", copyDims(dims), datapoint.NewIntValue(int64(container.Spec.Memory.Limit)), datapoint.Gauge, tt)
-			// Memory swap limit for the container.
-			ch <- *datapoint.New("container_spec_memory_swap_limit_bytes", copyDims(dims), datapoint.NewIntValue(int64(container.Spec.Memory.SwapLimit)), datapoint.Gauge, tt)
+			for _, cm := range c.containerSpecMemMetrics {
+				for _, metricValue := range cm.getValues(&container) {
+					newDims := copyDims(dims)
+
+					// Add extra dimensions
+					for i, label := range cm.extraLabels {
+						newDims[label] = metricValue.labels[i]
+					}
+
+					ch <- *datapoint.New(cm.name, newDims, metricValue.value, cm.valueType, tt)
+				}
+			}
 		}
 
 		// Now for the actual metrics
@@ -613,14 +811,19 @@ func (c *CadvisorCollector) collectMachineInfo(ch chan<- datapoint.Datapoint) {
 		glog.Warningf("Couldn't get machine info: %s", err)
 		return
 	}
+	dims := make(map[string]string)
 	tt := time.Now()
 
-	// CPU frequency.
-	ch <- *datapoint.New("machine_cpu_frequency_khz", make(map[string]string), datapoint.NewIntValue(int64(machineInfo.CpuFrequency)), datapoint.Gauge, tt)
+	for _, cm := range c.machineInfoMetrics {
+		for _, metricValue := range cm.getValues(machineInfo) {
+			newDims := copyDims(dims)
 
-	// Number of CPU cores on the machine.
-	ch <- *datapoint.New("machine_cpu_cores", make(map[string]string), datapoint.NewIntValue(int64(machineInfo.NumCores)), datapoint.Gauge, tt)
+			// Add extra dimensions
+			for i, label := range cm.extraLabels {
+				newDims[label] = metricValue.labels[i]
+			}
 
-	// Amount of memory installed on the machine.
-	ch <- *datapoint.New("machine_memory_bytes", make(map[string]string), datapoint.NewIntValue(int64(machineInfo.MemoryCapacity)), datapoint.Gauge, tt)
+			ch <- *datapoint.New(cm.name, newDims, metricValue.value, cm.valueType, tt)
+		}
+	}
 }
