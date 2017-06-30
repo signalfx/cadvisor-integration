@@ -6,7 +6,7 @@ go:
   - 1.6
 
 install:
- - go get github.com/cep21/gobuild
+ - go get github.com/signalfx/gobuild
 
 script:
   - export GO15VENDOREXPERIMENT=1
