@@ -1,6 +1,3 @@
-[vars]
-  duplLimit = "300"
-
 [metalinter]
   [metalinter.enabled]
     golint = true
