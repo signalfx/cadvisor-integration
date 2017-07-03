@@ -24,10 +24,12 @@ import (
 	"github.com/signalfx/metricproxy/protocol/signalfx"
 
 	"github.com/goinggo/workpool"
-	kubeAPI "k8s.io/kubernetes/pkg/api"
-	kube "k8s.io/kubernetes/pkg/client/unversioned"
-	kubeFields "k8s.io/kubernetes/pkg/fields"
-	kubeLabels "k8s.io/kubernetes/pkg/labels"
+	kubeAPI "k8s.io/client-go/pkg/api"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	kubeFields "k8s.io/client-go/pkg/fields"
+	kubeLabels "k8s.io/client-go/pkg/labels"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/pkg/api/v1"
 
 	"os"
 
@@ -157,11 +159,11 @@ func nameToLabel(name string) map[string]string {
 	return extraLabels
 }
 
-func updateNodes(kubeClient *kube.Client, cPort int) (hostIPtoNodeMap map[string]kubeAPI.Node, nodeIPs []string) {
+func updateNodes(kubeClient *corev1.CoreV1Client, cPort int) (hostIPtoNodeMap map[string]kubeAPI.Node, nodeIPs []string) {
 
 	hostIPtoNodeMap = make(map[string]kubeAPI.Node, 2)
 	nodeIPs = make([]string, 0, 2)
-	nodeList, apiErr := kubeClient.Nodes().List(kubeLabels.Everything(), kubeFields.Everything())
+	nodeList, apiErr := kubeClient.Nodes().List(v1.ListOptions{})
 	if apiErr != nil {
 		glog.Errorf("Failed to list kubernetes nodes. Error: %v\n", apiErr)
 	} else {
@@ -187,7 +189,7 @@ func updateNodes(kubeClient *kube.Client, cPort int) (hostIPtoNodeMap map[string
 	return hostIPtoNodeMap, nodeIPs
 }
 
-func updateServices(kubeClient *kube.Client) (podToServiceMap map[string]string) {
+func updateServices(kubeClient *corev1.CoreV1Client) (podToServiceMap map[string]string) {
 
 	serviceList, apiErr := kubeClient.Services("").List(kubeLabels.Everything(), kubeFields.Everything())
 	if apiErr != nil {
@@ -210,26 +212,30 @@ func updateServices(kubeClient *kube.Client) (podToServiceMap map[string]string)
 	return podToServiceMap
 }
 
-func newKubeClient(config *Config) (kubeClient *kube.Client, kubeErr error) {
-
+func newKubeClient(config *Config) (*corev1.CoreV1Client, error) {
+	var kubeConfig *rest.Config
 	if config.KubernetesURL == "" {
-		kubeClient, kubeErr = kube.NewInCluster()
+		kubeConfig, err := rest.InClusterConfig()
+		if kubeErr != nil {
+			glog.Errorf("Failed to create kubernetes client. Error: %v\n", kubeErr)
+		}
 	} else {
-		kubeConfig := &kube.Config{
+		kubeConfig = &rest.Config{
 			Host:     config.KubernetesURL,
 			Username: config.KubernetesUsername,
 			Password: config.KubernetesPassword,
 			Insecure: true,
 		}
-		kubeClient, kubeErr = kube.New(kubeConfig)
 	}
 
-	if kubeErr != nil {
-		glog.Errorf("Failed to create kubernetes client. Error: %v\n", kubeErr)
-		kubeClient = nil
+	restClient, err := rest.NewForConfig(kubeConfig)
+
+	if err != nil {
+		glog.Errorf("Failed to create kubernetes client. Error: %v\n", err)
+		return nil, err
 	}
 
-	return
+	return restClient.Core()
 }
 
 // MonitorNode collects metrics from a single node
