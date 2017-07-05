@@ -1,3 +1,6 @@
+[vars]
+  duplLimit = "10000"
+
 [metalinter]
   [metalinter.enabled]
     golint = true
