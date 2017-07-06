@@ -3,10 +3,6 @@
 	"ignore": "test",
 	"package": [
 		{
-			"path": "github.com/davecgh/go-spew/spew",
-			"revision": ""
-		},
-		{
 			"path": "github.com/docker/docker/pkg/mount",
 			"revision": ""
 		},
@@ -31,52 +27,12 @@
 			"revision": ""
 		},
 		{
-			"path": "github.com/emicklei/go-restful",
-			"revision": ""
-		},
-		{
-			"path": "github.com/emicklei/go-restful/log",
-			"revision": ""
-		},
-		{
-			"path": "github.com/emicklei/go-restful/swagger",
-			"revision": ""
-		},
-		{
-			"path": "github.com/ghodss/yaml",
-			"revision": ""
-		},
-		{
 			"path": "github.com/google/cadvisor/info/v2",
 			"revision": "aa6f80814bc6fdb43a0ed12719658225420ffb7d",
 			"revisionTime": "2015-10-23T13:22:17+01:00"
 		},
 		{
-			"path": "github.com/google/gofuzz",
-			"revision": ""
-		},
-		{
-			"path": "github.com/juju/ratelimit",
-			"revision": ""
-		},
-		{
-			"path": "github.com/pborman/uuid",
-			"revision": ""
-		},
-		{
-			"path": "github.com/spf13/pflag",
-			"revision": ""
-		},
-		{
-			"path": "github.com/ugorji/go/codec",
-			"revision": ""
-		},
-		{
 			"path": "golang.org/x/crypto/ssh",
-			"revision": ""
-		},
-		{
-			"path": "gopkg.in/yaml.v2",
 			"revision": ""
 		},
 		{
