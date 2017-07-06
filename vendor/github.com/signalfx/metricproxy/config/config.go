@@ -37,6 +37,7 @@ type ListenFrom struct {
 	Type                       string
 	ListenAddr                 *string
 	MetricDeconstructor        *string
+	Dimensions                 map[string]string
 	MetricDeconstructorOptions *string
 	Timeout                    *string
 	Name                       *string
@@ -69,6 +70,7 @@ type ProxyConfig struct {
 	LogMaxSize         *int
 	LogMaxBackups      *int
 	LogFormat          *string
+	LogLevel           *string
 }
 
 func decodeConfig(configBytes []byte) (*ProxyConfig, error) {

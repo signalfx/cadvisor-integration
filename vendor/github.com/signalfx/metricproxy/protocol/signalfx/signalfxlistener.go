@@ -323,8 +323,6 @@ func (handler *metricHandler) GetMetricTypeFromMap(metricName string) com_signal
 	return mt
 }
 
-type decoderFunc func() func(*http.Request) error
-
 // StartServingHTTPOnPort servers http requests for Signalfx datapoints
 func StartServingHTTPOnPort(ctx context.Context, sink dpsink.Sink, listenAddr string,
 	clientTimeout time.Duration, name string) (*ListenerServer, error) {
@@ -453,7 +451,7 @@ func SetupJSONV2Paths(r *mux.Router, handler http.Handler) {
 }
 
 func setupCollectd(r *mux.Router, ctx context.Context, name string, sink dpsink.Sink) stats.Keeper {
-	h, st := collectd.SetupHandler(ctx, name, sink)
+	h, st := collectd.SetupHandler(ctx, name, sink, nil)
 	SetupCollectdPaths(r, h)
 	return st
 }

@@ -1,0 +1,93 @@
+{
+	"ImportPath": "github.com/signalfx/metricproxy",
+	"GoVersion": "go1.5.1",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.8.6-7-g9c060de",
+			"Rev": "9c060de643590dae45da9d7c26276463bfc46fa0"
+		},
+		{
+			"ImportPath": "github.com/cep21/gohelpers/stringhelper",
+			"Rev": "dc600e06e5851ba613dba1949f9ae1b7641cb80c"
+		},
+		{
+			"ImportPath": "github.com/cep21/gohelpers/structdefaults",
+			"Rev": "dc600e06e5851ba613dba1949f9ae1b7641cb80c"
+		},
+		{
+			"ImportPath": "github.com/cep21/gohelpers/workarounds",
+			"Rev": "dc600e06e5851ba613dba1949f9ae1b7641cb80c"
+		},
+		{
+			"ImportPath": "github.com/cep21/xdgbasedir",
+			"Rev": "b123604ccc445c5759d1bc3b425defff797c3d8c"
+		},
+		{
+			"ImportPath": "github.com/golang/protobuf/proto",
+			"Rev": "73aaaa9eb61d74fbf7e256ca586a3a565b308eea"
+		},
+		{
+			"ImportPath": "github.com/gorilla/context",
+			"Rev": "215affda49addc4c8ef7e2534915df2c8c35c6cd"
+		},
+		{
+			"ImportPath": "github.com/gorilla/mux",
+			"Rev": "47e8f450ef38c857cdd922ec08862ca9d65a1c6d"
+		},
+		{
+			"ImportPath": "github.com/jtolds/gls",
+			"Rev": "9a4a02dbe491bef4bab3c24fd9f3087d6c4c6690"
+		},
+		{
+			"ImportPath": "github.com/signalfx/com_signalfx_metrics_protobuf",
+			"Rev": "3f07c0108fbfbcf93508e4ab61a080953136fdf9"
+		},
+		{
+			"ImportPath": "github.com/signalfx/golib/datapoint",
+			"Rev": "9f10d93a91220d2a68751a64b4c0fe4d6b219839"
+		},
+		{
+			"ImportPath": "github.com/signalfx/golib/event",
+			"Rev": "9f10d93a91220d2a68751a64b4c0fe4d6b219839"
+		},
+		{
+			"ImportPath": "github.com/signalfx/golib/nettest",
+			"Rev": "9f10d93a91220d2a68751a64b4c0fe4d6b219839"
+		},
+		{
+			"ImportPath": "github.com/signalfx/golib/timekeeper",
+			"Rev": "9f10d93a91220d2a68751a64b4c0fe4d6b219839"
+		},
+		{
+			"ImportPath": "github.com/signalfx/golib/web",
+			"Rev": "9f10d93a91220d2a68751a64b4c0fe4d6b219839"
+		},
+		{
+			"ImportPath": "github.com/smartystreets/assertions",
+			"Comment": "1.5.0-397-gac6b6f6",
+			"Rev": "ac6b6f68ca3d6ac00a360d0fad0c844859ad131b"
+		},
+		{
+			"ImportPath": "github.com/smartystreets/goconvey/convey",
+			"Comment": "1.5.0-432-g6a613df",
+			"Rev": "6a613dfb77d9fd2df760901a46339b33694d9bd1"
+		},
+		{
+			"ImportPath": "github.com/stretchr/testify/assert",
+			"Rev": "e22aedd37671fb115be6c0c25129c405cb575cfd"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "db8e4de5b2d6653f66aea53094624468caad15d2"
+		},
+		{
+			"ImportPath": "gopkg.in/natefinch/lumberjack.v2",
+			"Comment": "v1.0-15-g588a21f",
+			"Rev": "588a21fb0fa0ebdfde42670fa214576b6f0f22df"
+		}
+	]
+}

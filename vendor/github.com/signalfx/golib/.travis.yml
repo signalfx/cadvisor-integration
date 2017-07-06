@@ -1,0 +1,24 @@
+language: go
+
+sudo: false
+
+go:
+  - 1.4
+  - 1.5
+  - tip
+
+before_install:
+  - go get -u github.com/cep21/goverify
+  - go get github.com/mattn/goveralls
+
+install:
+  - go get -d -v -t ./... 
+
+script:
+  - export PATH=$HOME/gopath/bin:$PATH
+  - export GOCOVERDIR_DIR="."
+  - goverify -v
+  - goveralls -coverprofile=coverage.out -service=travis-ci
+
+after_script:
+  - cat coverage.out
