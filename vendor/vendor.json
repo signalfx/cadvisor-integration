@@ -288,5 +288,6 @@
 			"path": "speter.net/go/exp/math/dec/inf",
 			"revision": ""
 		}
-	]
+	],
+	"rootPath": "github.com/signalfx/cadvisor-integration"
 }
