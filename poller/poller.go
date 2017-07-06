@@ -24,10 +24,11 @@ import (
 	"github.com/signalfx/metricproxy/protocol/signalfx"
 
 	"github.com/goinggo/workpool"
-	kubeAPI "k8s.io/kubernetes/pkg/api"
-	kube "k8s.io/kubernetes/pkg/client/unversioned"
-	kubeFields "k8s.io/kubernetes/pkg/fields"
-	kubeLabels "k8s.io/kubernetes/pkg/labels"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/pkg/api/v1"
+	kubeFields "k8s.io/client-go/pkg/fields"
+	kubeLabels "k8s.io/client-go/pkg/labels"
+	"k8s.io/client-go/rest"
 
 	"os"
 
@@ -157,11 +158,13 @@ func nameToLabel(name string) map[string]string {
 	return extraLabels
 }
 
-func updateNodes(kubeClient *kube.Client, cPort int) (hostIPtoNodeMap map[string]kubeAPI.Node, nodeIPs []string) {
-
-	hostIPtoNodeMap = make(map[string]kubeAPI.Node, 2)
+func updateNodes(kubeClient *corev1.CoreV1Client, cPort int) (hostIPtoNodeMap map[string]v1.Node, nodeIPs []string) {
+	hostIPtoNodeMap = make(map[string]v1.Node, 2)
 	nodeIPs = make([]string, 0, 2)
-	nodeList, apiErr := kubeClient.Nodes().List(kubeLabels.Everything(), kubeFields.Everything())
+	nodeList, apiErr := kubeClient.Nodes().List(v1.ListOptions{
+		LabelSelector: kubeLabels.Everything().String(),
+		FieldSelector: kubeFields.Everything().String(),
+	})
 	if apiErr != nil {
 		glog.Errorf("Failed to list kubernetes nodes. Error: %v\n", apiErr)
 	} else {
@@ -169,10 +172,10 @@ func updateNodes(kubeClient *kube.Client, cPort int) (hostIPtoNodeMap map[string
 			var hostIP string
 			for _, nodeAddress := range node.Status.Addresses {
 				switch nodeAddress.Type {
-				case kubeAPI.NodeInternalIP:
+				case v1.NodeInternalIP:
 					hostIP = nodeAddress.Address
 					break
-				case kubeAPI.NodeLegacyHostIP:
+				case v1.NodeLegacyHostIP:
 					hostIP = nodeAddress.Address
 				}
 			}
@@ -187,9 +190,12 @@ func updateNodes(kubeClient *kube.Client, cPort int) (hostIPtoNodeMap map[string
 	return hostIPtoNodeMap, nodeIPs
 }
 
-func updateServices(kubeClient *kube.Client) (podToServiceMap map[string]string) {
+func updateServices(kubeClient *corev1.CoreV1Client) (podToServiceMap map[string]string) {
 
-	serviceList, apiErr := kubeClient.Services("").List(kubeLabels.Everything(), kubeFields.Everything())
+	serviceList, apiErr := kubeClient.Services("").List(v1.ListOptions{
+		LabelSelector: kubeLabels.Everything().String(),
+		FieldSelector: kubeFields.Everything().String(),
+	})
 	if apiErr != nil {
 		glog.Errorf("Failed to list kubernetes services. Error: %v\n", apiErr)
 		return nil
@@ -197,7 +203,10 @@ func updateServices(kubeClient *kube.Client) (podToServiceMap map[string]string)
 
 	podToServiceMap = make(map[string]string, 2)
 	for _, service := range serviceList.Items {
-		podList, apiErr := kubeClient.Pods("").List(kubeLabels.SelectorFromSet(service.Spec.Selector), kubeFields.Everything())
+		podList, apiErr := kubeClient.Pods("").List(v1.ListOptions{
+			LabelSelector: kubeLabels.SelectorFromSet(service.Spec.Selector).String(),
+			FieldSelector: kubeFields.Everything().String(),
+		})
 		if apiErr != nil {
 			glog.Errorf("Failed to list kubernetes pods. Error: %v\n", apiErr)
 		} else {
@@ -210,26 +219,30 @@ func updateServices(kubeClient *kube.Client) (podToServiceMap map[string]string)
 	return podToServiceMap
 }
 
-func newKubeClient(config *Config) (kubeClient *kube.Client, kubeErr error) {
-
+func newKubeClient(config *Config) (restClient *corev1.CoreV1Client, err error) {
+	var kubeConfig *rest.Config
 	if config.KubernetesURL == "" {
-		kubeClient, kubeErr = kube.NewInCluster()
+		kubeConfig, err = rest.InClusterConfig()
+		if err != nil {
+			glog.Errorf("Failed to create kubernetes client config. Error: %v\n", err)
+		}
 	} else {
-		kubeConfig := &kube.Config{
+		kubeConfig = &rest.Config{
 			Host:     config.KubernetesURL,
 			Username: config.KubernetesUsername,
 			Password: config.KubernetesPassword,
 			Insecure: true,
 		}
-		kubeClient, kubeErr = kube.New(kubeConfig)
 	}
 
-	if kubeErr != nil {
-		glog.Errorf("Failed to create kubernetes client. Error: %v\n", kubeErr)
-		kubeClient = nil
+	restClient, err = corev1.NewForConfig(kubeConfig)
+
+	if err != nil {
+		glog.Errorf("Failed to create kubernetes client. Error: %v\n", err)
+		return nil, err
 	}
 
-	return
+	return restClient, err
 }
 
 // MonitorNode collects metrics from a single node
@@ -342,7 +355,7 @@ func (p *PrometheusScraper) Main(paramDataSendRate, paramNodeServiceDiscoveryRat
 			podMap := updateServices(kubeClient)
 			hostMap, _ := updateNodes(kubeClient, p.Cfg.CadvisorPort)
 
-			hostMapCopy := make(map[string]kubeAPI.Node)
+			hostMapCopy := make(map[string]v1.Node)
 			for k, v := range hostMap {
 				hostMapCopy[k] = v
 			}
@@ -391,7 +404,7 @@ type scrapWorkCache struct {
 	cases           []reflect.SelectCase
 	flushChan       chan responseChannel
 	podToServiceMap map[string]string
-	hostIPtoNameMap map[string]kubeAPI.Node
+	hostIPtoNameMap map[string]v1.Node
 	forwarder       *signalfx.Forwarder
 	cfg             *Config
 	mutex           *sync.Mutex
@@ -441,7 +454,7 @@ func (swc *scrapWorkCache) setPodToServiceMap(m map[string]string) {
 	swc.podToServiceMap = m
 }
 
-func (swc *scrapWorkCache) setHostIPtoNameMap(m map[string]kubeAPI.Node) {
+func (swc *scrapWorkCache) setHostIPtoNameMap(m map[string]v1.Node) {
 	swc.mutex.Lock()
 	defer swc.mutex.Unlock()
 
@@ -474,7 +487,7 @@ func (swc *scrapWorkCache) flush() {
 
 func (swc *scrapWorkCache) fillNodeDims(chosen int, dims map[string]string) {
 
-	node, ok := func() (n kubeAPI.Node, b bool) {
+	node, ok := func() (n v1.Node, b bool) {
 		swc.mutex.Lock()
 		defer func() {
 			swc.mutex.Unlock()
@@ -492,7 +505,7 @@ func (swc *scrapWorkCache) fillNodeDims(chosen int, dims map[string]string) {
 		dims["node_container_runtime_version"] = node.Status.NodeInfo.ContainerRuntimeVersion
 		dims["node_kernel_version"] = node.Status.NodeInfo.KernelVersion
 		dims["node_kubelet_version"] = node.Status.NodeInfo.KubeletVersion
-		dims["node_os_image"] = node.Status.NodeInfo.OsImage
+		dims["node_os_image"] = node.Status.NodeInfo.OSImage
 		dims["node_kubeproxy_version"] = node.Status.NodeInfo.KubeProxyVersion
 	} else {
 		// This should only happen when doing MonitorNode().
