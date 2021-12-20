@@ -1,3 +1,5 @@
+>ℹ️&nbsp;&nbsp;SignalFx was acquired by Splunk in October 2019. See [Splunk SignalFx](https://www.splunk.com/en_us/investor-relations/acquisitions/signalfx.html) for more information.
+
 [![Build Status](https://travis-ci.org/signalfx/cadvisor-integration.svg?branch=master)](https://travis-ci.org/signalfx/cadvisor-integration) [![Docker Repository on Quay.io](https://quay.io/repository/signalfx/cadvisor-integration/status "Docker Repository on Quay.io")](https://quay.io/repository/signalfx/cadvisor-integration)
 
 # cadvisor-integration
